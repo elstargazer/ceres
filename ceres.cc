@@ -1,18 +1,9 @@
-/* $Id: step-22.cc 24291 2011-09-09 03:17:50Z bangerth $ */
-/* Author: Wolfgang Bangerth, Texas A&M University, 2008 */
+/*
+Viscoelastoplastic relaxation of Ceres
+Author: Roger R. Fu
+Adapted from Fu et al. 2014 Icarus 240, 133-145 starting Oct. 19, 2014
+ */
 
-/*    $Id: step-22.cc 24291 2011-09-09 03:17:50Z bangerth $       */
-/*                                                                */
-/*    Copyright (C) 2008, 2009, 2010, 2011 by the deal.II authors */
-/*                                                                */
-/*    This file is subject to QPL and may not be  distributed     */
-/*    without copyright and license information. Please refer     */
-/*    to the file deal.II/doc/license.html for the  text  and     */
-/*    further information on this license.                        */
-
-// @sect3{Include files}
-// As usual, we start by including
-// some well-known files:
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/logstream.h>
 #include <deal.II/base/function.h>
