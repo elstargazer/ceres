@@ -47,7 +47,8 @@ public:
        {
     	   p_triangulation = pi;
        };
-  void compute_fit(std::vector<double> &ell, unsigned char bndry);
+       void compute_fit(std::vector<double> &ell, unsigned char bndry);
+
 
 private:
   Triangulation<dim,dim>*   p_triangulation;
