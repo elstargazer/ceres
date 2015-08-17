@@ -73,13 +73,13 @@ One per plasticity step:
 // be used as a preconditioner in 3D:
 #include <deal.II/lac/sparse_ilu.h>
 #include "support_code/ellipsoid_grav.h"
-#include "support_code/ellipse_fit.h"
-
-// This is C++:
 #include <fstream>
 #include <sstream>
 #include <time.h>
 #include <armadillo>
+
+#include "support_code/ellipsoid_fit.h"
+
 
 // As in all programs, the namespace dealii
 // is included:
@@ -235,6 +235,8 @@ private:
 	BlockVector<double> system_rhs;
 
 	std_cxx1x::shared_ptr<typename InnerPreconditioner<dim>::type> A_preconditioner;
+
+	ellipsoid_fit<dim>   ellipsoid;
 };
 
 // Class for boundary conditions and rhs
@@ -403,7 +405,8 @@ StokesProblem<dim>::StokesProblem(const unsigned int degree) :
 		triangulation(Triangulation<dim>::maximum_smoothing),
 		fe(FE_Q<dim>(degree + 1), dim, FE_Q<dim>(degree), 1),
 		dof_handler(triangulation),
-		quadrature_formula(degree + 2)
+		quadrature_formula(degree + 2),
+		ellipsoid(&triangulation)
 				{}
 
 // Set up dofs
@@ -1475,11 +1478,9 @@ void StokesProblem<dim>::move_mesh() {
 						* system_parameters::current_time_interval;
 			}
 
-	Triangulation<dim>& tri_out = triangulation;
-	FE_test<dim>	ellipse_fit_object;
-	ellipse_fit_object.cp_tr(tri_out);
 	std::vector<double> ellipse_axes(0);
-	ellipse_fit_object.fit_ellipsoid(ellipse_axes, system_parameters::present_timestep, false);
+	// compute fit to boundary 1
+	ellipsoid.compute_fit(ellipse_axes, 1);
 
 	std::cout << endl;
 	std::cout << "New dimensions for best-fit ellipse: ";
@@ -1645,11 +1646,9 @@ void StokesProblem<dim>::setup_initial_mesh() {
 		}
 	}
 
-	Triangulation<dim>& tri_out = triangulation;
-	FE_test<dim>	ellipse_fit_object;
-	ellipse_fit_object.cp_tr(tri_out);
 	std::vector<double> ellipse_axes(0);
-	ellipse_fit_object.fit_ellipsoid(ellipse_axes, system_parameters::present_timestep, false);
+	// compute fit to boundary = 1
+	ellipsoid.compute_fit(ellipse_axes, 1);
 
 	std::cout << "The initial best-fit ellipse has dimensions: ";
 	for(unsigned int j = 0; j < ellipse_axes.size(); j++)
