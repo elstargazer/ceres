@@ -136,7 +136,7 @@ config_in::config_in(char* filename)
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
-	    // Ignore.
+		  cerr << "We've got a problem in the get radii block" << endl;
 	  }
 
 	  // get body parameters
@@ -179,7 +179,8 @@ config_in::config_in(char* filename)
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
-	    cout << "Error in Body parameters" << endl;
+		  cerr << "We've got a problem in the body parameters block" << endl;
+
 	  }
 
 	// Rheology parameters
@@ -207,7 +208,7 @@ config_in::config_in(char* filename)
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
-	    // Ignore.
+		  cerr << "We've got a problem in the rheology parameters block" << endl;
 	  }
 
 	  // Plasticity parameters
@@ -225,7 +226,7 @@ config_in::config_in(char* filename)
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
-	    // Ignore.
+		  cerr << "We've got a problem in the plasticity parameters block" << endl;
 	  }
 
 	// Viscoelasticity parameters
@@ -253,7 +254,7 @@ config_in::config_in(char* filename)
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
-	    // Ignore.
+		  cerr << "We've got a problem in the viscoelasticity parameters block" << endl;
 	  }
 
 	// Mesh refinement parameters
@@ -273,7 +274,7 @@ config_in::config_in(char* filename)
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
-	    // Ignore.
+		 cerr << "We've got a problem in the mesh refinement parameters block" << endl;
 	  }
 
 	  // Solver parameters
@@ -288,7 +289,7 @@ config_in::config_in(char* filename)
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
-	    // Ignore.
+		  cerr << "We've got a problem in the solver parameters block" << endl;
 	  }
 
 	  // Time step parameters
@@ -305,7 +306,7 @@ config_in::config_in(char* filename)
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
-	    // Ignore.
+		  cerr << "We've got a problem in the time step parameters block" << endl;
 	  }
 }
 }
