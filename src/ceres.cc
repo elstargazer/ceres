@@ -39,6 +39,8 @@ Adapted from Fu et al. 2014 Icarus 240, 133-145 starting Oct. 19, 2014
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/derivative_approximation.h>
+#include <deal.II/numerics/fe_field_function.h>
+
 
 // Then we need to include the header file
 // for the sparse direct solver UMFPACK:
@@ -56,9 +58,9 @@ Adapted from Fu et al. 2014 Icarus 240, 133-145 starting Oct. 19, 2014
 #include <time.h>
 #include <armadillo>
 
-#include "support_code/ellipsoid_grav.h"
-#include "support_code/ellipsoid_fit.h"
-#include "support_code/config_in.h"
+#include "../support_code/ellipsoid_grav.h"
+#include "../support_code/ellipsoid_fit.h"
+#include "../support_code/config_in.h"
 
 
 // As in all programs, the namespace dealii
@@ -1201,14 +1203,17 @@ void StokesProblem<dim>::solution_stesses() {
 						reductionfactor = 100;
 					else
 						reductionfactor = 1.9 * sigma1 / 5 / sigma3;
-						cell_effective_viscosity = current_cell_viscosity / reductionfactor;
-						fail_ID.push_back(1);
-						total_fails++;
 
-						std::ofstream fout_failed_cells(failed_cells_output.str().c_str(), std::ios::app);
-						fout_failed_cells << points_list[i] << "\n";
-						fout_failed_cells.close();
-				} else {
+					cell_effective_viscosity = current_cell_viscosity / reductionfactor;
+					fail_ID.push_back(1);
+					total_fails++;
+
+					std::ofstream fout_failed_cells(failed_cells_output.str().c_str(), std::ios::app);
+					fout_failed_cells << points_list[i] << "\n";
+					fout_failed_cells.close();
+				}
+
+			else {
 					cell_effective_viscosity = current_cell_viscosity;
 					fail_ID.push_back(0);
 				}
@@ -1408,7 +1413,7 @@ void StokesProblem<dim>::update_time_interval()
 			if(std::abs(solution.block(i)(j)) > max_velocity)
 				max_velocity = std::abs(solution.block(i)(j));
 	system_parameters::current_time_interval = move_goal_per_step / max_velocity;//FUDGED
-	std::cout << "\n   New viscous time: " << system_parameters::current_time_interval << " s"<<endl;
+	std::cout << "\n   New viscous time: " << system_parameters::current_time_interval << " s"<< std::endl;
 }
 
 //====================== MOVE MESH ======================
@@ -1791,9 +1796,12 @@ int main(int argc, char* argv[]) {
 	char* cfg_filename = new char[80];
 
 	if (argc == 1) // if no input parameters (as if launched from eclipse)
-		strcpy(cfg_filename,"ConfigurationFile.cfg");
+	{
+		std::strcpy(cfg_filename,"config/ConfigurationFile.cfg");
+		printf(cfg_filename);
+	}
 	else
-		strcpy(cfg_filename,argv[1]);
+		std::strcpy(cfg_filename,argv[1]);
 
 	try {
 		using namespace dealii;
