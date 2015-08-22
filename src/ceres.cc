@@ -62,7 +62,6 @@ Adapted from Fu et al. 2014 Icarus 240, 133-145 starting Oct. 19, 2014
 #include "../support_code/ellipsoid_fit.h"
 #include "../support_code/config_in.h"
 
-
 // As in all programs, the namespace dealii
 // is included:
 namespace Step22 {
@@ -1010,13 +1009,13 @@ void StokesProblem<dim>::output_results() const {
 	std::ostringstream filename;
 	if (system_parameters::present_timestep < system_parameters::initial_elastic_iterations)
 	{
-		filename << "time"
+		filename << system_parameters::output_folder << "/time"
 						<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 						<< "_elastic_displacements" << ".txt";
 	}
 	else
 	{
-		filename << "time"
+		filename << system_parameters::output_folder << "/time"
 				<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 				<< "_flow" << Utilities::int_to_string(plastic_iteration, 2) << ".txt";
 	}
@@ -1034,7 +1033,7 @@ void StokesProblem<dim>::solution_stesses() {
 
 	//name the output text files
 	std::ostringstream stress_output;
-	stress_output << "time"
+	stress_output << system_parameters::output_folder << "/time"
 			<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 			<< "_principalstresses" << Utilities::int_to_string(plastic_iteration, 2)
 			<< ".txt";
@@ -1042,7 +1041,7 @@ void StokesProblem<dim>::solution_stesses() {
 	fout_snew.close();
 
 	std::ostringstream stresstensor_output;
-	stresstensor_output << "time"
+	stresstensor_output << system_parameters::output_folder << "/time"
 			<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 			<< "_stresstensor" << Utilities::int_to_string(plastic_iteration, 2)
 			<< ".txt";
@@ -1050,7 +1049,7 @@ void StokesProblem<dim>::solution_stesses() {
 	fout_sfull.close();
 
 	std::ostringstream failed_cells_output;
-	failed_cells_output << "time"
+	failed_cells_output << system_parameters::output_folder << "/time"
 			<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 			<< "_failurelocations" << Utilities::int_to_string(plastic_iteration, 2)
 			<< ".txt";
@@ -1058,7 +1057,7 @@ void StokesProblem<dim>::solution_stesses() {
 	fout_failed_cells.close();
 
 	std::ostringstream plastic_eta_output;
-	plastic_eta_output << "time"
+	plastic_eta_output << system_parameters::output_folder << "/time"
 			<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 			<< "_viscositiesreg" << Utilities::int_to_string(plastic_iteration, 2)
 			<< ".txt";
@@ -1068,7 +1067,7 @@ void StokesProblem<dim>::solution_stesses() {
 	std::ostringstream initial_eta_output;
 	if (plastic_iteration == 0)
 	{
-		initial_eta_output << "time"
+		initial_eta_output << system_parameters::output_folder << "/time"
 			<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 			<< "_baseviscosities.txt";
 		std::ofstream fout_baseeta(initial_eta_output.str().c_str());
@@ -1240,7 +1239,7 @@ void StokesProblem<dim>::solution_stesses() {
 	{
 		system_parameters::continue_plastic_iterations = false;
 		std::ostringstream times_filename;
-		times_filename << "physical_times.txt";
+		times_filename << system_parameters::output_folder << "physical_times.txt";
 		std::ofstream fout_times(times_filename.str().c_str(), std::ios::app);
 		fout_times << system_parameters::present_timestep << " "
 						<< system_parameters::present_time << " " <<  plastic_iteration << "\n";
@@ -1464,7 +1463,7 @@ void StokesProblem<dim>::move_mesh() {
 template<int dim>
 void StokesProblem<dim>::write_vertices() {
 	std::ostringstream vertices_output;
-	vertices_output << "time"
+	vertices_output << system_parameters::output_folder << "/time"
 		<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 		<< "_surface.txt";
 	std::ofstream fout_final_vertices(vertices_output.str().c_str());
@@ -1815,7 +1814,7 @@ int main(int argc, char* argv[]) {
 		deallog.depth_console(0);
 
 		StokesProblem<2> flow_problem(1);
-		flow_problem.run();
+        flow_problem.run();
 
 		t2 = std::clock();
 		float diff (((float)t2 - (float)t1) / (float)CLOCKS_PER_SEC);
