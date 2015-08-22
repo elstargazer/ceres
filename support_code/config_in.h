@@ -22,6 +22,7 @@ namespace system_parameters {
 
 // Mesh file name
 string mesh_filename;
+string output_folder;
 
 // No idea what there parameters are
 double eq_r;
@@ -112,12 +113,16 @@ config_in::config_in(char* filename)
 	  try
 	  {
         string msh = cfg.lookup("mesh_filename");
+        string out = cfg.lookup("output_folder");
+
+        system_parameters::output_folder = out;
 	    system_parameters::mesh_filename = msh;
+
 	    cout << "mesh filename: " << system_parameters::mesh_filename << endl << endl;
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
-	    cerr << "No 'mesh_filename' setting in configuration file." << endl;
+	    cerr << " error in the file name section of config file." << endl;
 	  }
 
 	  // get radii
@@ -152,7 +157,7 @@ config_in::config_in(char* filename)
 		system_parameters::depths = new double[ndepths];
 
 		double d;
-		for(int i=0; i<ndepths; i++)
+		for(unsigned int i=0; i<ndepths; i++)
 		{
 			d = set_depths[i];
 			system_parameters::depths[i] = d;
