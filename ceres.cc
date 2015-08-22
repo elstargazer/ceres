@@ -72,69 +72,23 @@ One per plasticity step:
 // incomplete LU factorization that will
 // be used as a preconditioner in 3D:
 #include <deal.II/lac/sparse_ilu.h>
-#include "support_code/ellipsoid_grav.h"
+
+#include <iostream>
 #include <fstream>
 #include <sstream>
+#include <string>
 #include <time.h>
 #include <armadillo>
 
+#include "support_code/ellipsoid_grav.h"
 #include "support_code/ellipsoid_fit.h"
+#include "support_code/config_in.h"
 
 
 // As in all programs, the namespace dealii
 // is included:
 namespace Step22 {
-namespace system_parameters {
-double eq_r = 0;
-double polar_r = 0;
 
-double depths[] = {62000, 58000, -10};
-double crust_thickness = depths[0];
-double r_core_eq = 0;
-double r_core_polar = 0;
-double mantle_rho = 1465.7;
-double core_rho = 2491.1;
-double period = 1000;
-double omegasquared = 2 * 3.141592653589793 / 3600 / period * 2
-		* 3.141592653589793 / 3600 / period;
-double eta_ceiling = 1e17 * 1e5;
-double eta_floor = eta_ceiling / 1e5;
-double pressure_scale = eta_ceiling / 1e3;
-double q = 2; // heat flux in mW/m2
-double ice_G = 9.33e9;//Bland et al. 2013
-double rock_G = 40e9;
-bool cylindrical = true;
-bool continue_plastic_iterations = true;
-char mesh_filename[] = "meshes/mesh_test_def_quad_2.inp";
-
-//plasticity variables
-bool plasticity_on = false;
-unsigned int max_plastic_iterations = 50;
-double smoothing_radius = 10000;
-
-//viscoelasticity variables
-unsigned int initial_elastic_iterations = 1;
-double elastic_time = 1;
-double viscous_time = 3e3 * 3.1557e7;
-double initial_disp_target = 6000;
-double final_disp_target = 300;
-double current_time_interval = 0;
-
-//mesh variables
-unsigned int global_refinement = 0;
-unsigned int small_r_refinement = 0;
-unsigned int crustal_refinement = 0;
-unsigned int surface_refinement = 0;
-
-//solver variables
-int iteration_coefficient = 3000;
-double tolerance_coefficient = 1e-10;
-
-//time step variables
-double present_time = 0;
-double present_timestep = 0;
-double total_viscous_steps = 2;
-}
 using namespace dealii;
 using namespace arma;
 
@@ -493,8 +447,8 @@ std::vector<double> StokesProblem<dim>::flow_law(double r, double z)
 	//usually, these are the silicate, cmb ice, and surface ice viscosities
 	double eta_kinks[] = {system_parameters::eta_ceiling, eta_cmb, eta_surf};
 //	double eta_kinks[] = {1e22, 1e22, 1e22};
-	std::vector<double> etas(sizeof(system_parameters::depths) / sizeof(double *) * 2);
-	for(unsigned int i=0; i < (sizeof(system_parameters::depths) / sizeof(double *)); i++)
+	std::vector<double> etas(system_parameters::sizeof_depths / sizeof(double *) * 2);
+	for(unsigned int i=0; i < (system_parameters::sizeof_depths / sizeof(double *)); i++)
 	{
 		etas[2*i] = system_parameters::depths[i];
 		etas[2*i + 1] = eta_kinks[i];
@@ -1483,9 +1437,12 @@ void StokesProblem<dim>::move_mesh() {
 	ellipsoid.compute_fit(ellipse_axes, 1);
 
 	std::cout << endl;
-	std::cout << "New dimensions for best-fit ellipse: ";
+	std::cout << "New dimensions for best-fit ellipse: " << endl;
 	for(unsigned int j = 0; j < ellipse_axes.size(); j++)
 		std::cout << ellipse_axes[j] << " ";
+
+	std::cout << "Ellipsoid polar flattening: ";
+    std::cout << (ellipse_axes[0] - ellipse_axes[dim-1])/ellipse_axes[0] << " ";
 
 	system_parameters::eq_r = ellipse_axes[0];
 	system_parameters::polar_r = ellipse_axes[1];
@@ -1836,10 +1793,23 @@ void StokesProblem<dim>::run() {
 
 //====================== MAIN ======================
 
-int main() {
+int main(int argc, char* argv[]) {
+
+	// output program name
+	std::cout << "Running: " << argv[0] << std::endl;
+	std::cout << "Number of arguments: " << argc << std::endl;
+
+	char* cfg_filename = new char[80];
+
+	if (argc == 1) // if no input parameters (as if launched from eclipse)
+		strcpy(cfg_filename,"ConfigurationFile.cfg");
+	else
+		strcpy(cfg_filename,argv[1]);
+
 	try {
 		using namespace dealii;
 		using namespace Step22;
+		config_in cfg(cfg_filename);
 
 		std::clock_t t1;
 		std::clock_t t2;
