@@ -39,6 +39,8 @@ Adapted from Fu et al. 2014 Icarus 240, 133-145 starting Oct. 19, 2014
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/derivative_approximation.h>
+#include <deal.II/numerics/fe_field_function.h>
+
 
 // Then we need to include the header file
 // for the sparse direct solver UMFPACK:
@@ -56,10 +58,9 @@ Adapted from Fu et al. 2014 Icarus 240, 133-145 starting Oct. 19, 2014
 #include <time.h>
 #include <armadillo>
 
-#include "support_code/ellipsoid_grav.h"
-#include "support_code/ellipsoid_fit.h"
-#include "support_code/config_in.h"
-
+#include "../support_code/ellipsoid_grav.h"
+#include "../support_code/ellipsoid_fit.h"
+#include "../support_code/config_in.h"
 
 // As in all programs, the namespace dealii
 // is included:
@@ -1008,13 +1009,13 @@ void StokesProblem<dim>::output_results() const {
 	std::ostringstream filename;
 	if (system_parameters::present_timestep < system_parameters::initial_elastic_iterations)
 	{
-		filename << "time"
+		filename << system_parameters::output_folder << "/time"
 						<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 						<< "_elastic_displacements" << ".txt";
 	}
 	else
 	{
-		filename << "time"
+		filename << system_parameters::output_folder << "/time"
 				<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 				<< "_flow" << Utilities::int_to_string(plastic_iteration, 2) << ".txt";
 	}
@@ -1032,7 +1033,7 @@ void StokesProblem<dim>::solution_stesses() {
 
 	//name the output text files
 	std::ostringstream stress_output;
-	stress_output << "time"
+	stress_output << system_parameters::output_folder << "/time"
 			<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 			<< "_principalstresses" << Utilities::int_to_string(plastic_iteration, 2)
 			<< ".txt";
@@ -1040,7 +1041,7 @@ void StokesProblem<dim>::solution_stesses() {
 	fout_snew.close();
 
 	std::ostringstream stresstensor_output;
-	stresstensor_output << "time"
+	stresstensor_output << system_parameters::output_folder << "/time"
 			<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 			<< "_stresstensor" << Utilities::int_to_string(plastic_iteration, 2)
 			<< ".txt";
@@ -1048,7 +1049,7 @@ void StokesProblem<dim>::solution_stesses() {
 	fout_sfull.close();
 
 	std::ostringstream failed_cells_output;
-	failed_cells_output << "time"
+	failed_cells_output << system_parameters::output_folder << "/time"
 			<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 			<< "_failurelocations" << Utilities::int_to_string(plastic_iteration, 2)
 			<< ".txt";
@@ -1056,7 +1057,7 @@ void StokesProblem<dim>::solution_stesses() {
 	fout_failed_cells.close();
 
 	std::ostringstream plastic_eta_output;
-	plastic_eta_output << "time"
+	plastic_eta_output << system_parameters::output_folder << "/time"
 			<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 			<< "_viscositiesreg" << Utilities::int_to_string(plastic_iteration, 2)
 			<< ".txt";
@@ -1066,7 +1067,7 @@ void StokesProblem<dim>::solution_stesses() {
 	std::ostringstream initial_eta_output;
 	if (plastic_iteration == 0)
 	{
-		initial_eta_output << "time"
+		initial_eta_output << system_parameters::output_folder << "/time"
 			<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 			<< "_baseviscosities.txt";
 		std::ofstream fout_baseeta(initial_eta_output.str().c_str());
@@ -1201,14 +1202,17 @@ void StokesProblem<dim>::solution_stesses() {
 						reductionfactor = 100;
 					else
 						reductionfactor = 1.9 * sigma1 / 5 / sigma3;
-						cell_effective_viscosity = current_cell_viscosity / reductionfactor;
-						fail_ID.push_back(1);
-						total_fails++;
 
-						std::ofstream fout_failed_cells(failed_cells_output.str().c_str(), std::ios::app);
-						fout_failed_cells << points_list[i] << "\n";
-						fout_failed_cells.close();
-				} else {
+					cell_effective_viscosity = current_cell_viscosity / reductionfactor;
+					fail_ID.push_back(1);
+					total_fails++;
+
+					std::ofstream fout_failed_cells(failed_cells_output.str().c_str(), std::ios::app);
+					fout_failed_cells << points_list[i] << "\n";
+					fout_failed_cells.close();
+				}
+
+			else {
 					cell_effective_viscosity = current_cell_viscosity;
 					fail_ID.push_back(0);
 				}
@@ -1235,7 +1239,7 @@ void StokesProblem<dim>::solution_stesses() {
 	{
 		system_parameters::continue_plastic_iterations = false;
 		std::ostringstream times_filename;
-		times_filename << "physical_times.txt";
+		times_filename << system_parameters::output_folder << "physical_times.txt";
 		std::ofstream fout_times(times_filename.str().c_str(), std::ios::app);
 		fout_times << system_parameters::present_timestep << " "
 						<< system_parameters::present_time << " " <<  plastic_iteration << "\n";
@@ -1408,7 +1412,7 @@ void StokesProblem<dim>::update_time_interval()
 			if(std::abs(solution.block(i)(j)) > max_velocity)
 				max_velocity = std::abs(solution.block(i)(j));
 	system_parameters::current_time_interval = move_goal_per_step / max_velocity;//FUDGED
-	std::cout << "\n   New viscous time: " << system_parameters::current_time_interval << " s"<<endl;
+	std::cout << "\n   New viscous time: " << system_parameters::current_time_interval << " s"<< std::endl;
 }
 
 //====================== MOVE MESH ======================
@@ -1459,7 +1463,7 @@ void StokesProblem<dim>::move_mesh() {
 template<int dim>
 void StokesProblem<dim>::write_vertices() {
 	std::ostringstream vertices_output;
-	vertices_output << "time"
+	vertices_output << system_parameters::output_folder << "/time"
 		<< Utilities::int_to_string(system_parameters::present_timestep, 2)
 		<< "_surface.txt";
 	std::ofstream fout_final_vertices(vertices_output.str().c_str());
@@ -1791,9 +1795,12 @@ int main(int argc, char* argv[]) {
 	char* cfg_filename = new char[80];
 
 	if (argc == 1) // if no input parameters (as if launched from eclipse)
-		strcpy(cfg_filename,"ConfigurationFile.cfg");
+	{
+		std::strcpy(cfg_filename,"config/ConfigurationFile.cfg");
+		printf(cfg_filename);
+	}
 	else
-		strcpy(cfg_filename,argv[1]);
+		std::strcpy(cfg_filename,argv[1]);
 
 	try {
 		using namespace dealii;
@@ -1807,7 +1814,7 @@ int main(int argc, char* argv[]) {
 		deallog.depth_console(0);
 
 		StokesProblem<2> flow_problem(1);
-		flow_problem.run();
+        flow_problem.run();
 
 		t2 = std::clock();
 		float diff (((float)t2 - (float)t1) / (float)CLOCKS_PER_SEC);
