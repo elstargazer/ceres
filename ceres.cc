@@ -1437,12 +1437,12 @@ void StokesProblem<dim>::move_mesh() {
 	ellipsoid.compute_fit(ellipse_axes, 1);
 
 	std::cout << endl;
-	std::cout << "New dimensions for best-fit ellipse: " << endl;
+	std::cout << "New dimensions for best-fit ellipse:   ";
 	for(unsigned int j = 0; j < ellipse_axes.size(); j++)
 		std::cout << ellipse_axes[j] << " ";
 
-	std::cout << "Ellipsoid polar flattening: ";
-    std::cout << (ellipse_axes[0] - ellipse_axes[dim-1])/ellipse_axes[0] << " ";
+	//std::cout << "Ellipsoid polar flattening: ";
+    //std::cout << (ellipse_axes[0] - ellipse_axes[dim-1])/ellipse_axes[0] << " ";
 
 	system_parameters::eq_r = ellipse_axes[0];
 	system_parameters::polar_r = ellipse_axes[1];
@@ -1797,7 +1797,6 @@ int main(int argc, char* argv[]) {
 
 	// output program name
 	std::cout << "Running: " << argv[0] << std::endl;
-	std::cout << "Number of arguments: " << argc << std::endl;
 
 	char* cfg_filename = new char[80];
 
