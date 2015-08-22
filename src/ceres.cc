@@ -4,6 +4,30 @@ Author: Roger R. Fu
 Adapted from Fu et al. 2014 Icarus 240, 133-145 starting Oct. 19, 2014
  */
 
+/*
+Summary of output files:
+
+One per run:
+
+- initial_mesh.eps					:  Visualization of initially imported mesh
+- physical_times.txt				:  Columns are (1) step number corresponding to other files, (2) physical times at the time when each calculation is run in sec, (3) number of the final plasticity iteration in each timestep.  Written in do_elastic_steps() for elastic steps and do_flow_step() for viscous steps
+
+One per timestep:
+
+- timeXX_elastic_displacements.txt	:  Vtk-readable file with columns (1) x, (2) y, (3) u_x, (4) u_y, (5) P.  Written in output_results() function, which is run immediately after solve().
+- timeXX_baseviscosities.txt		:  Columns (1) cell x, (2) cell y, (3) base viscosity in Pa s.  Written in solution_stresses().
+- timeXX_surface.txt				:  Surface (defined as where P=0 boundary condition is applied) vertices at the beginning of timestep, except for the final timestep.  Written in write_vertices() function, which is called immediately after setup_dofs() except for the final iteration, when it is called after move_mesh()
+
+One per plasticity step:
+
+- timeXX_flowYY.txt					:  Same as timeXX_elastic_displacements.txt above
+- timeXX_principalstressesYY.txt	:  Columns with sigma1 and sigma3 at each cell.  Same order as timeXX_baseviscosities.txt.  Written in solution_stresses().
+- timeXX_stresstensorYY.txt			:  Columns with components 11, 22, 33, and 13 of stress tensor at each cell.  Written in solution_stresses().
+- timeXX_failurelocations00.txt		:  Gives x,y coordinates of all cells where failure occurred.  Written in solution_stresses().
+- timeXX_viscositiesregYY.txt		:  Gives smoothed and regularized (i.e., floor and ceiling-filtered) effective viscosities.  Written at end of solution_stresses().
+
+*/
+
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/logstream.h>
 #include <deal.II/base/function.h>
@@ -134,15 +158,13 @@ private:
 
 	void setup_initial_mesh();
 	void do_elastic_steps();
-	void do_timestep();
+	void do_flow_step();
 	void update_time_interval();
 	void initialize_eta_and_G();
 	void move_mesh();
 	void write_vertices();
 	void setup_quadrature_point_history();
 	void update_quadrature_point_history();
-
-	unsigned int plastic_iteration;
 
 	const unsigned int degree;
 
@@ -151,6 +173,7 @@ private:
 	FESystem<dim> fe;
 	DoFHandler<dim> dof_handler;
 	unsigned int n_u = 0, n_p = 0;
+	unsigned int plastic_iteration = 0;
 
 	QGauss<dim> quadrature_formula;
 	Vector<double> node_viscosities;
@@ -423,8 +446,8 @@ std::vector<double> StokesProblem<dim>::flow_law(double r, double z)
 	double eta_surf = 0.00792447 * std::exp(5893.67 / Tsurf);
 	double eta_cmb = 0.00792447 * std::exp(5893.67 / Tcmb);
 	//usually, these are the silicate, cmb ice, and surface ice viscosities
-//	double eta_kinks[] = {system_parameters::eta_ceiling, eta_cmb, eta_surf};
-	double eta_kinks[] = {1e22, 1e22, 1e22};//FUDGED
+	double eta_kinks[] = {system_parameters::eta_ceiling, eta_cmb, eta_surf};
+//	double eta_kinks[] = {1e22, 1e22, 1e22};
 	std::vector<double> etas(system_parameters::sizeof_depths / sizeof(double *) * 2);
 	for(unsigned int i=0; i < (system_parameters::sizeof_depths / sizeof(double *)); i++)
 	{
@@ -492,7 +515,7 @@ double StokesProblem<dim>::get_log_local_viscosity(double &r, double &z) {
 			double visc_base = viscosity_function[n_minus_one + 3]
 					/ viscosity_function[n_minus_one + 1];
 			// This is the true viscosity given the thermal profile
-			double true_eta = viscosity_function[n_minus_one + 1] * std::pow(visc_base, visc_exponent);// * 1e5;//FUDGED
+			double true_eta = viscosity_function[n_minus_one + 1] * std::pow(visc_base, visc_exponent);
 
 			if(true_eta > system_parameters::eta_ceiling)
 				return system_parameters::eta_ceiling;
@@ -796,19 +819,6 @@ void StokesProblem<dim>::assemble_system() {
 			std::vector<Point<dim> > quad_points_list(n_q_points);
 			quad_points_list = fe_values.get_quadrature_points();
 
-			if (plastic_iteration
-					== (system_parameters::max_plastic_iterations - 1)) {
-				if (cell != first_cell) {
-					std::ofstream fout("gravity_field.txt", std::ios::app);
-					fout << quad_points_list[0] << " " << rhs_values[0];
-					fout.close();
-				} else {
-					std::ofstream fout("gravity_field.txt");
-					fout << quad_points_list[0] << " " << rhs_values[0];
-					fout.close();
-				}
-			}
-
 			for (unsigned int q = 0; q < n_q_points; ++q) {
 				const SymmetricTensor<2, dim> &old_stress =
 						local_quadrature_points_history[q].old_stress;
@@ -1020,7 +1030,6 @@ void StokesProblem<dim>::output_results() const {
 				<< "_flow" << Utilities::int_to_string(plastic_iteration, 2) << ".txt";
 	}
 
-
 	std::ofstream output(filename.str().c_str());
 	data_out.write_gnuplot(output);
 }
@@ -1118,11 +1127,6 @@ void StokesProblem<dim>::solution_stesses() {
 				velocity_grads[q][i] *= fe_values.JxW(q);
 				current_cell_grads[i] += velocity_grads[q][i];
 			}
-//			if (q<10 && cell == dof_handler.begin_active())
-//			{
-//				std::cout << velocity_grads[q][0] << " " << velocity_grads[q][1] << " " << fe_values.JxW(q) << endl;
-//
-//			}
 		}
 		current_cell_velocity /= cell_area;
 		for (unsigned int i = 0; i < (dim+1); i++)
@@ -1236,15 +1240,7 @@ void StokesProblem<dim>::solution_stesses() {
 
 	std::cout << "   Number of failing cells: " << total_fails << "\n";
 	if (total_fails <= 20)
-	{
 		system_parameters::continue_plastic_iterations = false;
-		std::ostringstream times_filename;
-		times_filename << system_parameters::output_folder << "physical_times.txt";
-		std::ofstream fout_times(times_filename.str().c_str(), std::ios::app);
-		fout_times << system_parameters::present_timestep << " "
-						<< system_parameters::present_time << " " <<  plastic_iteration << "\n";
-		fout_times.close();
-	}
 
 	node_viscosities.reinit(dof_handler.n_dofs());
 
@@ -1411,8 +1407,9 @@ void StokesProblem<dim>::update_time_interval()
 		for(unsigned int j=0; j<solution.block(i).size(); j++)
 			if(std::abs(solution.block(i)(j)) > max_velocity)
 				max_velocity = std::abs(solution.block(i)(j));
-	system_parameters::current_time_interval = move_goal_per_step / max_velocity;//FUDGED
-	std::cout << "\n   New viscous time: " << system_parameters::current_time_interval << " s"<< std::endl;
+	// NOTE: It is possible for this time interval to be very different from that used in the FE calculation.
+	system_parameters::current_time_interval = move_goal_per_step / max_velocity;
+	std::cout << "\n   Viscous time for moving mesh: " << system_parameters::current_time_interval << " s";
 }
 
 //====================== MOVE MESH ======================
@@ -1443,14 +1440,13 @@ void StokesProblem<dim>::move_mesh() {
 	ellipsoid.compute_fit(ellipse_axes, 1);
 
 	std::cout << endl;
-	std::cout << "New dimensions for best-fit ellipse: " << endl;
+	std::cout << "New dimensions for best-fit ellipse:   ";
 	for(unsigned int j = 0; j < ellipse_axes.size(); j++)
 		std::cout << ellipse_axes[j] << " ";
 
-	std::cout << "Ellipsoid polar flattening: ";
-    std::cout << (ellipse_axes[0] - ellipse_axes[dim-1])/ellipse_axes[0] << " ";
+	//std::cout << "Ellipsoid polar flattening: ";
+    //std::cout << (ellipse_axes[0] - ellipse_axes[dim-1])/ellipse_axes[0] << " ";
 
-	write_vertices();
 	system_parameters::eq_r = ellipse_axes[0];
 	system_parameters::polar_r = ellipse_axes[1];
 	system_parameters::r_core_eq = system_parameters::eq_r - system_parameters::crust_thickness;
@@ -1614,7 +1610,7 @@ void StokesProblem<dim>::setup_initial_mesh() {
 	// compute fit to boundary = 1
 	ellipsoid.compute_fit(ellipse_axes, 1);
 
-	std::cout << "The initial best-fit ellipse has dimensions: ";
+	std::cout << "\nThe initial best-fit ellipse has dimensions: ";
 	for(unsigned int j = 0; j < ellipse_axes.size(); j++)
 		std::cout << ellipse_axes[j] << " ";
 	std::cout << endl;
@@ -1679,7 +1675,7 @@ void StokesProblem<dim>::do_elastic_steps()
 
 	// Writes files with the physical time and the highest number of plasticity iterations
 	std::ostringstream times_filename;
-	times_filename << "physical_times.txt";
+	times_filename << system_parameters::output_folder << "/physical_times.txt";
 	std::ofstream fout_times(times_filename.str().c_str());
 	fout_times.close();
 
@@ -1693,11 +1689,10 @@ void StokesProblem<dim>::do_elastic_steps()
 		std::cout << "\n\nElastic iteration " << elastic_iteration
 							<< "\n";
 		setup_dofs();
+		write_vertices();
 
-
-		if (system_parameters::present_timestep == 0) {
+		if (system_parameters::present_timestep == 0)
 			initialize_eta_and_G();
-		}
 
 		system_parameters::current_time_interval =
 				system_parameters::elastic_time; //This is the time interval needed in assembling the problem
@@ -1708,8 +1703,8 @@ void StokesProblem<dim>::do_elastic_steps()
 		std::cout << "   Solving..." << std::flush;
 		solve();
 
-		update_quadrature_point_history();
 		output_results();
+		update_quadrature_point_history();
 
 	//				std::cout << std::endl << "\a";
 		elastic_iteration++;
@@ -1721,12 +1716,13 @@ void StokesProblem<dim>::do_elastic_steps()
 
 //====================== DO A SINGLE VISCOPLASTIC TIMESTEP ======================
 template<int dim>
-void StokesProblem<dim>::do_timestep() {
+void StokesProblem<dim>::do_flow_step() {
 	plastic_iteration = 0;
 	while (plastic_iteration < system_parameters::max_plastic_iterations) {
 		if (system_parameters::continue_plastic_iterations == true) {
 			std::cout << "Plasticity iteration " << plastic_iteration << "\n";
 			setup_dofs();
+			write_vertices();
 
 			std::cout << "   Assembling..." << std::endl << std::flush;
 			assemble_system();
@@ -1736,9 +1732,21 @@ void StokesProblem<dim>::do_timestep() {
 
 			output_results();
 			solution_stesses();
+
+			if (system_parameters::continue_plastic_iterations == false) {
+				// Writes the current timestep, physical time, and final plasticity_iteration
+				std::ostringstream times_filename;
+				times_filename << system_parameters::output_folder << "/physical_times.txt";
+				std::ofstream fout_times(times_filename.str().c_str(), std::ios::app);
+				fout_times << system_parameters::present_timestep << " "
+							<< system_parameters::present_time << " " <<  plastic_iteration << "\n";
+				fout_times.close();
+				break;
+			}
+			plastic_iteration++;
+			std::cout << "0 " << system_parameters::continue_plastic_iterations << endl;
 //			std::cout << std::endl << "\a";
 		}
-		plastic_iteration++;
 	}
 }
 
@@ -1761,21 +1769,23 @@ void StokesProblem<dim>::run() {
 		if (system_parameters::continue_plastic_iterations == false)
 			system_parameters::continue_plastic_iterations = true;
 		std::cout << "\n\nViscoelastoplastic iteration " << VEPstep << "\n\n";
+		if (system_parameters::present_timestep == 0)
+			initialize_eta_and_G();
 
 		// Computes plasticity
-		do_timestep();
-		system_parameters::present_time = system_parameters::present_time
-				+ system_parameters::current_time_interval;
+		do_flow_step();
 		update_quadrature_point_history();
 		update_time_interval();
 		move_mesh();
 		system_parameters::present_timestep++;
+		system_parameters::present_time = system_parameters::present_time + system_parameters::current_time_interval;
 		VEPstep++;
 	}
 
 	// Write the moved vertices time for the last viscous step
+	write_vertices();
 	std::ostringstream times_filename;
-	times_filename << "physical_times.txt";
+	times_filename << system_parameters::output_folder << "/physical_times.txt";
 	std::ofstream fout_times(times_filename.str().c_str(), std::ios::app);
 	fout_times << system_parameters::present_timestep << " "
 					<< system_parameters::present_time << " 0\n";
@@ -1790,7 +1800,6 @@ int main(int argc, char* argv[]) {
 
 	// output program name
 	std::cout << "Running: " << argv[0] << std::endl;
-	std::cout << "Number of arguments: " << argc << std::endl;
 
 	char* cfg_filename = new char[80];
 
