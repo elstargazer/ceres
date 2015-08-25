@@ -1,3 +1,6 @@
 #! /bin/sh
-
+# this bash script will run a number of instances of src/ceres. 
+# It takes two arguments
+# 1: a file that contains a list of configuration files
+# 2: number of cpus 
 cat $1 | parallel -j $2 -u ./src/ceres {}
