@@ -1,4 +1,4 @@
-function GenerateRandomMesh(config_filename,r_mean, beta, intercept, Nrand)
+function GeneratePowerLawMesh(config_filename,r_mean, beta, intercept, Nrand)
 
 %% Input paramters
 
