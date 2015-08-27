@@ -46,6 +46,7 @@ One per plasticity step:
 #include <deal.II/grid/tria_iterator.h>
 #include <deal.II/grid/tria_boundary_lib.h>
 #include <deal.II/grid/grid_tools.h>
+#include <deal.II/grid/manifold_lib.h>
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_in.h>
 
@@ -80,6 +81,7 @@ One per plasticity step:
 #include <sstream>
 #include <string>
 #include <time.h>
+#include <math.h>
 #include <armadillo>
 
 #include "../support_code/ellipsoid_grav.h"
@@ -162,7 +164,7 @@ private:
 	void update_time_interval();
 	void initialize_eta_and_G();
 	void move_mesh();
-	void write_vertices();
+	void write_vertices(unsigned char);
 	void setup_quadrature_point_history();
 	void update_quadrature_point_history();
 
@@ -389,7 +391,7 @@ void StokesProblem<dim>::setup_dofs() {
 	}
 	{
 		std::set<unsigned char> no_normal_flux_boundaries;
-		no_normal_flux_boundaries.insert(2);
+		no_normal_flux_boundaries.insert(0);
 		VectorTools::compute_no_normal_flux_constraints(dof_handler, 0,
 				no_normal_flux_boundaries, constraints);
 	}
@@ -459,22 +461,24 @@ std::vector<double> StokesProblem<dim>::flow_law(double r, double z)
 }
 
 template<int dim>
-double StokesProblem<dim>::get_log_local_viscosity(double &r, double &z) {
+double StokesProblem<dim>::get_log_local_viscosity(double &r, double &z)
+{
 	double ecc = system_parameters::eq_r / system_parameters::polar_r;
 	double Rminusr = system_parameters::eq_r - system_parameters::polar_r;
 	double approx_a = std::sqrt(r * r + z * z * ecc * ecc);
 	double approx_b = approx_a / ecc;
 	double group1 = r * r + z * z - Rminusr * Rminusr;
 
-	if (approx_b
-			< (system_parameters::polar_r - system_parameters::crust_thickness)) {
+	if (approx_b < (system_parameters::polar_r - system_parameters::crust_thickness))
 		return system_parameters::eta_ceiling;
-	} else {
+	else
+	{
 		double a0 = approx_a;
 		double error = 10000;
 		// While loop finds the a axis of the "isodepth" ellipse for which the input point is on the surface.
 		// An "isodepth" ellipse is defined as one whose axes a,b are related to the global axes A, B by: A-a = B-b
-		while (error >= 10) {
+		while (error >= 10)
+		{
 			double a02 = a0 * a0;
 			double a03 = a0 * a02;
 			double a04 = a0 * a03;
@@ -486,6 +490,7 @@ double StokesProblem<dim>::get_log_local_viscosity(double &r, double &z) {
 			a0 += deltaa;
 			error = std::abs(deltaa);
 		}
+
 		double local_depth = system_parameters::eq_r - a0;
 		if (local_depth < 0)
 			local_depth = 0;
@@ -1436,8 +1441,11 @@ void StokesProblem<dim>::move_mesh() {
 			}
 
 	std::vector<double> ellipse_axes(0);
-	// compute fit to boundary 1
+	std::vector<double> ellipse_core_axes(0);
+	// compute fit to boundary 1 and 2
 	ellipsoid.compute_fit(ellipse_axes, 1);
+	ellipsoid.compute_fit(ellipse_core_axes, 2);
+
 
 	std::cout << endl;
 	std::cout << "New dimensions for best-fit ellipse:   ";
@@ -1449,15 +1457,15 @@ void StokesProblem<dim>::move_mesh() {
 
 	system_parameters::eq_r = ellipse_axes[0];
 	system_parameters::polar_r = ellipse_axes[1];
-	system_parameters::r_core_eq = system_parameters::eq_r - system_parameters::crust_thickness;
-	system_parameters::r_core_polar = system_parameters::polar_r - system_parameters::crust_thickness;
+	system_parameters::r_core_eq = ellipse_core_axes[0];
+	system_parameters::r_core_polar = ellipse_core_axes[1];
 
 }
 
 //====================== WRITE VERTICES TO FILE ======================
 
 template<int dim>
-void StokesProblem<dim>::write_vertices() {
+void StokesProblem<dim>::write_vertices(unsigned char boundary_that_we_need) {
 	std::ostringstream vertices_output;
 	vertices_output << system_parameters::output_folder << "/time"
 		<< Utilities::int_to_string(system_parameters::present_timestep, 2)
@@ -1472,7 +1480,7 @@ void StokesProblem<dim>::write_vertices() {
 		for (unsigned int f = 0; f < GeometryInfo<dim>::faces_per_cell; ++f)
 		{
 			unsigned char boundary_ids = cell->face(f)->boundary_indicator();
-			if(boundary_ids == 1)
+			if(boundary_ids == boundary_that_we_need)
 				{
 				for (unsigned int v=0; v<GeometryInfo<dim>::vertices_per_face; ++v)
 					if (vertex_touched[cell->face(f)->vertex_index(v)] == false)
@@ -1499,28 +1507,41 @@ void StokesProblem<dim>::setup_initial_mesh() {
 	GridOut grid_out;
 	grid_out.write_eps (triangulation, out_eps);
 
-//boundary indicator 1 is free surface, indicator 2 is inside
-	double zero_tolerance = 1e-3;
-	for (typename Triangulation<dim>::active_cell_iterator cell =
-			triangulation.begin_active(); cell != triangulation.end(); ++cell)
-		for (unsigned int f = 0; f < GeometryInfo<dim>::faces_per_cell; ++f) {
-			if (cell->face(f)->at_boundary()) {
-				cell->face(f)->set_all_boundary_indicators(0);
-				if (cell->face(f)->center()[0] > zero_tolerance) {
-					if (cell->face(f)->center()[1] > zero_tolerance) {
-						cell->face(f)->set_all_boundary_indicators(1);
-						if (cell->face(f)->center()[0] <= 1) {
-							cell->face(f)->set_all_boundary_indicators(3);
-						}
-					}
-				}
+// set boundary id
+// boundary indicator 1 is outer free surface, 2 is boundary between layers, 0 is flat boundaries
+    typename Triangulation<dim>::active_cell_iterator
+    		      cell=triangulation.begin_active(), endc=triangulation.end();
 
+    unsigned int how_many; // how many components away from cardinal planes
+
+	double zero_tolerance = 1e-3;
+	for (; cell != endc; ++cell) // loop over all cells
+	{
+		cell->set_manifold_id(cell->material_id());
+		for (unsigned int f = 0; f < GeometryInfo<dim>::faces_per_cell; ++f) // loop over all vertices
+		{
+			if (cell->face(f)->at_boundary())
+			{
+				how_many = 0;
+				for(unsigned int i=0; i<dim; i++)
+					if (cell->face(f)->center()[i] > zero_tolerance)
+					    how_many++;
+				if (how_many==dim)
+					cell->face(f)->set_all_boundary_indicators(1); // if face center coordinates > zero_tol, set bnry indicators to 1
+				else
+				    cell->face(f)->set_all_boundary_indicators(0);
 			}
-			if (cell->face(f)->center()[0] < zero_tolerance)
-				cell->face(f)->set_all_boundary_indicators(2);
-			if (cell->face(f)->center()[1] < zero_tolerance)
-				cell->face(f)->set_all_boundary_indicators(2);
+			if (cell->neighbor(f) != endc)
+			{
+			    cell->face(f)->set_manifold_id(std::min(cell->material_id(), cell->neighbor(f)->material_id()));
+			    // set boundary id between different materials
+				if (cell->material_id() != cell->neighbor(f)->material_id())
+				    cell->face(f)->set_all_boundary_indicators(2);
+			}
+			else
+			    cell->face(f)->set_manifold_id(cell->material_id());
 		}
+	}
 
 	triangulation.refine_global(system_parameters::global_refinement);
 
@@ -1607,20 +1628,30 @@ void StokesProblem<dim>::setup_initial_mesh() {
 	}
 
 	std::vector<double> ellipse_axes(0);
-	// compute fit to boundary = 1
+	std::vector<double> ellipse_core_axes(0);
+	// compute fit to boundary = 1 and 2
 	ellipsoid.compute_fit(ellipse_axes, 1);
+	ellipsoid.compute_fit(ellipse_core_axes, 2);
 
 	std::cout << "\nThe initial best-fit ellipse has dimensions: ";
 	for(unsigned int j = 0; j < ellipse_axes.size(); j++)
 		std::cout << ellipse_axes[j] << " ";
 	std::cout << endl;
 
+	std::cout << "\nThe initial best-fit core ellipse has dimensions: ";
+	for(unsigned int j = 0; j < ellipse_core_axes.size(); j++)
+		std::cout << ellipse_core_axes[j] << " ";
+	std::cout << endl;
+
 	system_parameters::eq_r = ellipse_axes[0];
 	system_parameters::polar_r = ellipse_axes[1];
-	system_parameters::r_core_eq = system_parameters::eq_r - system_parameters::crust_thickness;
-	system_parameters::r_core_polar = system_parameters::polar_r - system_parameters::crust_thickness;
+	system_parameters::r_core_eq = ellipse_core_axes[0];
+	system_parameters::r_core_polar = ellipse_core_axes[1];
 
-	write_vertices();
+	system_parameters::crust_thickness = std::pow(std::pow(ellipse_axes[0],2)*ellipse_axes[1],1.0/3.0) -
+			std::pow(std::pow(ellipse_core_axes[0],2)*ellipse_core_axes[1],1.0/3.0);
+
+	write_vertices(1);
 }
 
 //====================== REFINE MESH ======================
@@ -1689,7 +1720,7 @@ void StokesProblem<dim>::do_elastic_steps()
 		std::cout << "\n\nElastic iteration " << elastic_iteration
 							<< "\n";
 		setup_dofs();
-		write_vertices();
+		write_vertices(1);
 
 		if (system_parameters::present_timestep == 0)
 			initialize_eta_and_G();
@@ -1722,7 +1753,7 @@ void StokesProblem<dim>::do_flow_step() {
 		if (system_parameters::continue_plastic_iterations == true) {
 			std::cout << "Plasticity iteration " << plastic_iteration << "\n";
 			setup_dofs();
-			write_vertices();
+			write_vertices(1);
 
 			std::cout << "   Assembling..." << std::endl << std::flush;
 			assemble_system();
@@ -1783,7 +1814,7 @@ void StokesProblem<dim>::run() {
 	}
 
 	// Write the moved vertices time for the last viscous step
-	write_vertices();
+	write_vertices(1);
 	std::ostringstream times_filename;
 	times_filename << system_parameters::output_folder << "/physical_times.txt";
 	std::ofstream fout_times(times_filename.str().c_str(), std::ios::app);
@@ -1806,7 +1837,6 @@ int main(int argc, char* argv[]) {
 	if (argc == 1) // if no input parameters (as if launched from eclipse)
 	{
 		std::strcpy(cfg_filename,"config/ConfigurationFile.cfg");
-		printf(cfg_filename);
 	}
 	else
 		std::strcpy(cfg_filename,argv[1]);
