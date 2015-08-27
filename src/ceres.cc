@@ -23,7 +23,7 @@ One per plasticity step:
 - timeXX_flowYY.txt					:  Same as timeXX_elastic_displacements.txt above
 - timeXX_principalstressesYY.txt	:  Columns with sigma1 and sigma3 at each cell.  Same order as timeXX_baseviscosities.txt.  Written in solution_stresses().
 - timeXX_stresstensorYY.txt			:  Columns with components 11, 22, 33, and 13 of stress tensor at each cell.  Written in solution_stresses().
-- timeXX_failurelocations00.txt		:  Gives x,y coordinates of all cells where failure occurred.  Written in solution_stresses().
+- timeXX_failurelocationsYY.txt		:  Gives x,y coordinates of all cells where failure occurred.  Written in solution_stresses().
 - timeXX_viscositiesregYY.txt		:  Gives smoothed and regularized (i.e., floor and ceiling-filtered) effective viscosities.  Written at end of solution_stresses().
 
 */
@@ -1414,7 +1414,8 @@ void StokesProblem<dim>::update_time_interval()
 				max_velocity = std::abs(solution.block(i)(j));
 	// NOTE: It is possible for this time interval to be very different from that used in the FE calculation.
 	system_parameters::current_time_interval = move_goal_per_step / max_velocity;
-	std::cout << "\n   Viscous time for moving mesh: " << system_parameters::current_time_interval << " s";
+	double step_time_yr = system_parameters::current_time_interval / SECSINYEAR;
+	std::cout << "\n   Viscous time for moving mesh: " << step_time_yr << " yr";
 }
 
 //====================== MOVE MESH ======================
@@ -1681,10 +1682,6 @@ void StokesProblem<dim>::setup_quadrature_point_history() {
 
 	triangulation.clear_user_data();
 
-	{
-		std::vector<PointHistory<dim> > tmp;
-		tmp.swap(quadrature_point_history);
-	}
 	quadrature_point_history.resize(our_cells * quadrature_formula.size());
 
 	unsigned int history_index = 0;

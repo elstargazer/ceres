@@ -110,6 +110,9 @@ void config_in::write_config()
     fout_config << "rock_G = " << system_parameters::rock_G << endl;
     fout_config << "cylindrical = " << system_parameters::cylindrical << endl;
     fout_config << "continue_plastic_iterations = " << system_parameters::continue_plastic_iterations << endl;
+    fout_config << "plasticity_on = " << system_parameters::plasticity_on << endl;
+    fout_config << "max_plastic_iterations = " << system_parameters::max_plastic_iterations << endl;
+    fout_config << "smoothing_radius = " << system_parameters::smoothing_radius << endl;
     fout_config << "initial_elastic_iterations = " << system_parameters::initial_elastic_iterations << endl;
     fout_config << "elastic_time = " << system_parameters::elastic_time << endl;
     fout_config << "viscous_time = " << system_parameters::viscous_time << endl;
@@ -125,9 +128,6 @@ void config_in::write_config()
 	fout_config << "present_time = " << system_parameters::present_time << endl;
 	fout_config << "present_timestep = " << system_parameters::present_timestep << endl;
 	fout_config << "total_viscous_steps = " << system_parameters::total_viscous_steps << endl;
-	fout_config << "plasticity_on = " << system_parameters::plasticity_on << endl;
-	fout_config << "max_plastic_iterations = " << system_parameters::max_plastic_iterations << endl;
-	fout_config << "smoothing_radius = " << system_parameters::smoothing_radius << endl;
 	
 	fout_config.close();
 }

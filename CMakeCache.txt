@@ -24,7 +24,7 @@ CMAKE_COLOR_MAKEFILE:BOOL=ON
 CMAKE_CXX_COMPILER:FILEPATH=/usr/local/bin/mpic++
 
 //Flags used by the compiler during all build types.
-CMAKE_CXX_FLAGS:STRING=-Qunused-arguments -pedantic -larmadillo -fpic -Wall -Wpointer-arith -Wwrite-strings -Wsynth -Wsign-compare -Wswitch -Wno-long-long   -Wno-dangling-else -Wno-delete-non-virtual-dtor -Wno-long-long -Wno-newline-eof -Wno-unused-function -Wno-unused-private-field -Wno-unused-variable -Wno-unsupported-friend -Wno-c++11-extensions -Wno-c99-extensions -Wno-variadic-macros -std=c++11 -Wno-parentheses -Wno-long-long
+CMAKE_CXX_FLAGS:STRING=-Qunused-arguments -pedantic -lconfig++ -larmadillo -fpic -Wall -Wpointer-arith -Wwrite-strings -Wsynth -Wsign-compare -Wswitch -Wno-long-long   -Wno-dangling-else -Wno-delete-non-virtual-dtor -Wno-long-long -Wno-newline-eof -Wno-unused-function -Wno-unused-private-field -Wno-unused-variable -Wno-unsupported-friend -Wno-c++11-extensions -Wno-c99-extensions -Wno-variadic-macros -std=c++11 -Wno-parentheses -Wno-long-long
 
 //Flags used by the compiler during debug builds.
 CMAKE_CXX_FLAGS_DEBUG:STRING=-O0 -ggdb
@@ -112,7 +112,7 @@ CMAKE_OSX_DEPLOYMENT_TARGET:STRING=
 CMAKE_OSX_SYSROOT:STRING=
 
 //Value Computed by CMake
-CMAKE_PROJECT_NAME:STATIC=ceres
+CMAKE_PROJECT_NAME:STATIC=src/ceres
 
 //Flags used by the linker during the creation of dll's.
 CMAKE_SHARED_LINKER_FLAGS:STRING=' '
@@ -171,6 +171,12 @@ ceres_SOURCE_DIR:STATIC=/Users/rogerfu/Desktop/ceres/ceres_code
 
 //The directory containing a CMake configuration file for deal.II.
 deal.II_DIR:PATH=/Users/rogerfu/dealii-8.2.1/build/lib/cmake/deal.II
+
+//Value Computed by CMake
+src/ceres_BINARY_DIR:STATIC=/Users/rogerfu/Desktop/ceres/ceres_code
+
+//Value Computed by CMake
+src/ceres_SOURCE_DIR:STATIC=/Users/rogerfu/Desktop/ceres/ceres_code
 
 
 ########################
