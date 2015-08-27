@@ -22,6 +22,7 @@ namespace system_parameters {
 
 // Mesh file name
 string mesh_filename;
+string output_folder;
 
 // No idea what there parameters are
 double eq_r;
@@ -73,15 +74,63 @@ double tolerance_coefficient;
 
 //time step variables
 double present_time;
-double present_timestep;
-double total_viscous_steps;
+unsigned int present_timestep;
+unsigned int total_viscous_steps;
 }
 
 class config_in
 {
 public:
 	config_in(char*);
+	
+private:
+	void write_config();
 };
+
+void config_in::write_config()
+{
+	std::ostringstream config_parameters;
+	config_parameters << system_parameters::output_folder << "/run_parameters.txt";
+	std::ofstream fout_config(config_parameters.str().c_str());
+	fout_config << "mesh filename: " << system_parameters::mesh_filename << endl << endl;
+    fout_config << "eq_r = " << system_parameters::eq_r << endl;
+    fout_config << "polar_r = " << system_parameters::polar_r << endl;
+    fout_config << "crust_thickness = " << system_parameters::crust_thickness << endl;
+    fout_config << "r_core_eq = " << system_parameters::r_core_eq << endl;
+    fout_config << "r_core_polar = " << system_parameters::r_core_polar << endl;
+    fout_config << "mantle_rho = " << system_parameters::mantle_rho << endl;
+    fout_config << "core_rho = " << system_parameters::core_rho << endl;
+    fout_config << "period = " << system_parameters::period << endl;
+    fout_config << "omegasquared = " << system_parameters::omegasquared << endl;
+    fout_config << "eta_ceiling = " << system_parameters::eta_ceiling << endl;
+    fout_config << "eta_floor = " << system_parameters::eta_floor << endl;
+    fout_config << "pressure_scale = " << system_parameters::pressure_scale << endl;
+    fout_config << "q = " << system_parameters::q << endl;
+    fout_config << "ice_G = " << system_parameters::ice_G << endl;
+    fout_config << "rock_G = " << system_parameters::rock_G << endl;
+    fout_config << "cylindrical = " << system_parameters::cylindrical << endl;
+    fout_config << "continue_plastic_iterations = " << system_parameters::continue_plastic_iterations << endl;
+    fout_config << "initial_elastic_iterations = " << system_parameters::initial_elastic_iterations << endl;
+    fout_config << "elastic_time = " << system_parameters::elastic_time << endl;
+    fout_config << "viscous_time = " << system_parameters::viscous_time << endl;
+    fout_config << "initial_disp_target = " << system_parameters::initial_disp_target << endl;
+    fout_config << "final_disp_target = " << system_parameters::final_disp_target << endl;
+    fout_config << "current_time_interval = " << system_parameters::current_time_interval << endl;
+    fout_config << "global_refinement = " << system_parameters::global_refinement << endl;
+    fout_config << "small_r_refinement = " << system_parameters::small_r_refinement << endl;
+    fout_config << "crustal_refinement = " << system_parameters::crustal_refinement << endl;
+    fout_config << "surface_refinement = " << system_parameters::surface_refinement << endl;
+	fout_config << "iteration_coefficient = " << system_parameters::iteration_coefficient << endl;
+	fout_config << "tolerance_coefficient = " << system_parameters::tolerance_coefficient << endl;
+	fout_config << "present_time = " << system_parameters::present_time << endl;
+	fout_config << "present_timestep = " << system_parameters::present_timestep << endl;
+	fout_config << "total_viscous_steps = " << system_parameters::total_viscous_steps << endl;
+	fout_config << "plasticity_on = " << system_parameters::plasticity_on << endl;
+	fout_config << "max_plastic_iterations = " << system_parameters::max_plastic_iterations << endl;
+	fout_config << "smoothing_radius = " << system_parameters::smoothing_radius << endl;
+	
+	fout_config.close();
+}
 
 config_in::config_in(char* filename)
 {
@@ -112,12 +161,18 @@ config_in::config_in(char* filename)
 	  try
 	  {
         string msh = cfg.lookup("mesh_filename");
+        string out = cfg.lookup("output_folder");
+
+        system_parameters::output_folder = out;
 	    system_parameters::mesh_filename = msh;
-	    cout << "mesh filename: " << system_parameters::mesh_filename << endl << endl;
+
+        string output = cfg.lookup("output_folder");
+	    system_parameters::output_folder = output;
+
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
-	    cerr << "No 'mesh_filename' setting in configuration file." << endl;
+	    cerr << "No 'mesh_filename' or 'output_folder' setting in configuration file." << endl;
 	  }
 
 	  // get radii
@@ -129,10 +184,6 @@ config_in::config_in(char* filename)
 	    const Setting& radii = root["radii"];
 	    radii.lookupValue("eq_r", system_parameters::eq_r);
 	    radii.lookupValue("polar_r", system_parameters::polar_r);
-
-	    cout << "eq_r = " << system_parameters::eq_r << endl;
-	    cout << "polar_r = " << system_parameters::polar_r << endl;
-
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
@@ -148,15 +199,15 @@ config_in::config_in(char* filename)
 		unsigned int ndepths = set_depths.getLength();
 		system_parameters::sizeof_depths = ndepths;
 
-        cout << "Number of depth = " << ndepths << endl;
+//        cout << "Number of depth = " << ndepths << endl;
 		system_parameters::depths = new double[ndepths];
 
 		double d;
-		for(int i=0; i<ndepths; i++)
+		for(unsigned int i=0; i<ndepths; i++)
 		{
 			d = set_depths[i];
 			system_parameters::depths[i] = d;
-		    cout << "depth[" << i << "] = " << system_parameters::depths[i] << endl;
+//		    cout << "depth[" << i << "] = " << system_parameters::depths[i] << endl;
 		}
 
 	    const Setting& body_parameters = root["body_parameters"];
@@ -167,15 +218,6 @@ config_in::config_in(char* filename)
 	    body_parameters.lookupValue("core_rho", system_parameters::core_rho);
 	    body_parameters.lookupValue("period", system_parameters::period);
 	    system_parameters::omegasquared = pow(TWOPI / 3600 / system_parameters::period, 2.0);
-
-	    cout << "crust_thickness = " << system_parameters::crust_thickness << endl;
-	    cout << "r_core_eq = " << system_parameters::r_core_eq << endl;
-	    cout << "r_core_polar = " << system_parameters::r_core_polar << endl;
-	    cout << "mantle_rho = " << system_parameters::mantle_rho << endl;
-	    cout << "core_rho = " << system_parameters::core_rho << endl;
-	    cout << "period = " << system_parameters::period << endl;
-	    cout << "omegasquared = " << system_parameters::omegasquared << endl;
-
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
@@ -196,15 +238,6 @@ config_in::config_in(char* filename)
 	    rheology_parameters.lookupValue("rock_G", system_parameters::rock_G);
 	    rheology_parameters.lookupValue("cylindrical", system_parameters::cylindrical);
 	    rheology_parameters.lookupValue("continue_plastic_iterations", system_parameters::continue_plastic_iterations);
-
-	    cout << "eta_ceiling = " << system_parameters::eta_ceiling << endl;
-	    cout << "eta_floor = " << system_parameters::eta_floor << endl;
-	    cout << "pressure_scale = " << system_parameters::pressure_scale << endl;
-	    cout << "q = " << system_parameters::q << endl;
-	    cout << "ice_G = " << system_parameters::ice_G << endl;
-	    cout << "rock_G = " << system_parameters::rock_G << endl;
-	    cout << "cylindrical = " << system_parameters::cylindrical << endl;
-	    cout << "continue_plastic_iterations = " << system_parameters::continue_plastic_iterations << endl;
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
@@ -219,10 +252,6 @@ config_in::config_in(char* filename)
 	    plasticity_parameters.lookupValue("plasticity_on", system_parameters::plasticity_on);
 	    plasticity_parameters.lookupValue("max_plastic_iterations", system_parameters::max_plastic_iterations);
 	    plasticity_parameters.lookupValue("smoothing_radius", system_parameters::smoothing_radius);
-
-	    cout << "plasticity_on = " << system_parameters::plasticity_on << endl;
-	    cout << "max_plastic_iterations = " << system_parameters::max_plastic_iterations << endl;
-	    cout << "smoothing_radius = " << system_parameters::smoothing_radius << endl;
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
@@ -243,14 +272,6 @@ config_in::config_in(char* filename)
 	    viscoelasticity_parameters.lookupValue("current_time_interval", system_parameters::current_time_interval);
 
 	    system_parameters::viscous_time *= SECSINYEAR;
-
-
-	    cout << "initial_elastic_iterations = " << system_parameters::initial_elastic_iterations << endl;
-	    cout << "elastic_time = " << system_parameters::elastic_time << endl;
-	    cout << "viscous_time = " << system_parameters::viscous_time << endl;
-	    cout << "initial_disp_target = " << system_parameters::initial_disp_target << endl;
-	    cout << "final_disp_target = " << system_parameters::final_disp_target << endl;
-	    cout << "current_time_interval = " << system_parameters::current_time_interval << endl;
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
@@ -266,11 +287,6 @@ config_in::config_in(char* filename)
 	    mesh_refinement_parameters.lookupValue("small_r_refinement", system_parameters::small_r_refinement);
 	    mesh_refinement_parameters.lookupValue("crustal_refinement", system_parameters::crustal_refinement);
 	    mesh_refinement_parameters.lookupValue("surface_refinement", system_parameters::surface_refinement);
-
-	    cout << "global_refinement = " << system_parameters::global_refinement << endl;
-	    cout << "small_r_refinement = " << system_parameters::small_r_refinement << endl;
-	    cout << "crustal_refinement = " << system_parameters::crustal_refinement << endl;
-	    cout << "surface_refinement = " << system_parameters::surface_refinement << endl;
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
@@ -284,8 +300,7 @@ config_in::config_in(char* filename)
 	    solve_parameters.lookupValue("iteration_coefficient", system_parameters::iteration_coefficient);
 	    solve_parameters.lookupValue("tolerance_coefficient", system_parameters::tolerance_coefficient);
 
-	    cout << "iteration_coefficient = " << system_parameters::iteration_coefficient << endl;
-	    cout << "tolerance_coefficient = " << system_parameters::tolerance_coefficient << endl;
+
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
@@ -299,15 +314,12 @@ config_in::config_in(char* filename)
 	    time_step_parameters.lookupValue("present_time", system_parameters::present_time);
 	    time_step_parameters.lookupValue("present_timestep", system_parameters::present_timestep);
 	    time_step_parameters.lookupValue("total_viscous_steps", system_parameters::total_viscous_steps);
-
-	    cout << "present_time = " << system_parameters::present_time << endl;
-	    cout << "present_timestep = " << system_parameters::present_timestep << endl;
-	    cout << "total_viscous_steps = " << system_parameters::total_viscous_steps << endl;
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
 		  cerr << "We've got a problem in the time step parameters block" << endl;
 	  }
+	  write_config();
 }
 }
 
