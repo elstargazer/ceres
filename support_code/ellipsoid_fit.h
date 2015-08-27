@@ -33,6 +33,9 @@
 
 #include <fstream>
 #include <sstream>
+#include <iostream>
+#include <iomanip>
+#include <cstdlib>
 
 
 #include "local_math.h"
@@ -83,7 +86,7 @@ void ellipsoid_fit<dim>::compute_fit(std::vector<double> &ell, unsigned char bou
 	        boundary_ids = cell->face(f)->boundary_indicator();
 			if(boundary_ids == boundary_that_we_need)
 			{
-			    for (unsigned int v=1; v<GeometryInfo<dim>::vertices_per_face; ++v)
+			    for (unsigned int v=0; v<GeometryInfo<dim>::vertices_per_face; ++v)
 				    if (vertex_touched[cell->face(f)->vertex_index(v)] == false)
 					{
 					    vertex_touched[cell->face(f)->vertex_index(v)] = true;
@@ -100,6 +103,9 @@ void ellipsoid_fit<dim>::compute_fit(std::vector<double> &ell, unsigned char bou
 					}
 			}
 		}
+
+	if (ind_bnry_row.size()>0)
+	{
 
 	// maxtrix A'*A and vector A'*b;  A'*A*x = A'*b -- normal system of equations
     FullMatrix<double> AtA(dim,dim);
@@ -126,6 +132,9 @@ void ellipsoid_fit<dim>::compute_fit(std::vector<double> &ell, unsigned char bou
 	 // find ellipsoidal axes
 	 for(unsigned int i=0; i<dim; i++)
          ell.push_back(sqrt(1.0/x[i]));
+	}
+	else
+		std::cerr << "fit_ellipsoid: no points to fit" << std::endl;
 
 }
 
