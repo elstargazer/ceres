@@ -125,6 +125,9 @@ void config_in::write_config()
 	fout_config << "present_time = " << system_parameters::present_time << endl;
 	fout_config << "present_timestep = " << system_parameters::present_timestep << endl;
 	fout_config << "total_viscous_steps = " << system_parameters::total_viscous_steps << endl;
+	fout_config << "plasticity_on = " << system_parameters::plasticity_on << endl;
+	fout_config << "max_plastic_iterations = " << system_parameters::max_plastic_iterations << endl;
+	fout_config << "smoothing_radius = " << system_parameters::smoothing_radius << endl;
 	
 	fout_config.close();
 }
@@ -158,7 +161,11 @@ config_in::config_in(char* filename)
 	  try
 	  {
         string msh = cfg.lookup("mesh_filename");
+        string out = cfg.lookup("output_folder");
+
+        system_parameters::output_folder = out;
 	    system_parameters::mesh_filename = msh;
+
         string output = cfg.lookup("output_folder");
 	    system_parameters::output_folder = output;
 
@@ -245,12 +252,6 @@ config_in::config_in(char* filename)
 	    plasticity_parameters.lookupValue("plasticity_on", system_parameters::plasticity_on);
 	    plasticity_parameters.lookupValue("max_plastic_iterations", system_parameters::max_plastic_iterations);
 	    plasticity_parameters.lookupValue("smoothing_radius", system_parameters::smoothing_radius);
-
-		/*
-	    cout << "plasticity_on = " << system_parameters::plasticity_on << endl;
-	    cout << "max_plastic_iterations = " << system_parameters::max_plastic_iterations << endl;
-	    cout << "smoothing_radius = " << system_parameters::smoothing_radius << endl;
-		*/
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
