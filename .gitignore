@@ -1,3 +1,10 @@
 output/*
 CMakeFiles/*
 .DS_Store*
+.cproject
+.project
+CMakeLists.txt
+src/ceres
+cmake_install.cmake
+initial_mesh.eps
+local/*

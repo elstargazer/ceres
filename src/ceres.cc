@@ -12,7 +12,7 @@ One per run:
 - initial_mesh.eps					:  Visualization of initially imported mesh
 - physical_times.txt				:  Columns are (1) step number corresponding to other files, (2) physical times at the time when each calculation is run in sec, (3) number of the final plasticity iteration in each timestep.  Written in do_elastic_steps() for elastic steps and do_flow_step() for viscous steps
 
-One per timestep:
+One per time step:
 
 - timeXX_elastic_displacements.txt	:  Vtk-readable file with columns (1) x, (2) y, (3) u_x, (4) u_y, (5) P.  Written in output_results() function, which is run immediately after solve().
 - timeXX_baseviscosities.txt		:  Columns (1) cell x, (2) cell y, (3) base viscosity in Pa s.  Written in solution_stresses().
