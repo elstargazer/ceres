@@ -3,7 +3,7 @@ CMakeFiles/*
 .DS_Store*
 .cproject
 .project
-.settings
+.settings/*
 Makefile
 cmake_install.cmake
 CMakeLists.txt
