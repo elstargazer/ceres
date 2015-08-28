@@ -1460,6 +1460,9 @@ void StokesProblem<dim>::move_mesh() {
 	system_parameters::r_core_eq = ellipse_core_axes[0];
 	system_parameters::r_core_polar = ellipse_core_axes[1];
 
+	system_parameters::crust_thickness = std::pow(std::pow(ellipse_axes[0],2)*ellipse_axes[1],1.0/3.0) -
+				std::pow(std::pow(ellipse_core_axes[0],2)*ellipse_core_axes[1],1.0/3.0);
+
 }
 
 //====================== WRITE VERTICES TO FILE ======================
@@ -1650,6 +1653,8 @@ void StokesProblem<dim>::setup_initial_mesh() {
 
 	system_parameters::crust_thickness = std::pow(std::pow(ellipse_axes[0],2)*ellipse_axes[1],1.0/3.0) -
 			std::pow(std::pow(ellipse_core_axes[0],2)*ellipse_core_axes[1],1.0/3.0);
+
+	std::cout << "crustal thickness = " << system_parameters::crust_thickness << std::endl;
 
 	write_vertices(1);
 }
