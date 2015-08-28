@@ -12,7 +12,7 @@ One per run:
 - initial_mesh.eps					:  Visualization of initially imported mesh
 - physical_times.txt				:  Columns are (1) step number corresponding to other files, (2) physical times at the time when each calculation is run in sec, (3) number of the final plasticity iteration in each timestep.  Written in do_elastic_steps() for elastic steps and do_flow_step() for viscous steps
 
-One per timestep:
+One per time step:
 
 - timeXX_elastic_displacements.txt	:  Vtk-readable file with columns (1) x, (2) y, (3) u_x, (4) u_y, (5) P.  Written in output_results() function, which is run immediately after solve().
 - timeXX_baseviscosities.txt		:  Columns (1) cell x, (2) cell y, (3) base viscosity in Pa s.  Written in solution_stresses().
@@ -23,7 +23,7 @@ One per plasticity step:
 - timeXX_flowYY.txt					:  Same as timeXX_elastic_displacements.txt above
 - timeXX_principalstressesYY.txt	:  Columns with sigma1 and sigma3 at each cell.  Same order as timeXX_baseviscosities.txt.  Written in solution_stresses().
 - timeXX_stresstensorYY.txt			:  Columns with components 11, 22, 33, and 13 of stress tensor at each cell.  Written in solution_stresses().
-- timeXX_failurelocations00.txt		:  Gives x,y coordinates of all cells where failure occurred.  Written in solution_stresses().
+- timeXX_failurelocationsYY.txt		:  Gives x,y coordinates of all cells where failure occurred.  Written in solution_stresses().
 - timeXX_viscositiesregYY.txt		:  Gives smoothed and regularized (i.e., floor and ceiling-filtered) effective viscosities.  Written at end of solution_stresses().
 
 */
@@ -66,14 +66,7 @@ One per plasticity step:
 #include <deal.II/numerics/derivative_approximation.h>
 #include <deal.II/numerics/fe_field_function.h>
 
-
-// Then we need to include the header file
-// for the sparse direct solver UMFPACK:
 #include <deal.II/lac/sparse_direct.h>
-
-// This includes the libary for the
-// incomplete LU factorization that will
-// be used as a preconditioner in 3D:
 #include <deal.II/lac/sparse_ilu.h>
 
 #include <iostream>
@@ -1414,7 +1407,8 @@ void StokesProblem<dim>::update_time_interval()
 				max_velocity = std::abs(solution.block(i)(j));
 	// NOTE: It is possible for this time interval to be very different from that used in the FE calculation.
 	system_parameters::current_time_interval = move_goal_per_step / max_velocity;
-	std::cout << "\n   Viscous time for moving mesh: " << system_parameters::current_time_interval << " s";
+	double step_time_yr = system_parameters::current_time_interval / SECSINYEAR;
+	std::cout << "\n   Viscous time for moving mesh: " << step_time_yr << " yr";
 }
 
 //====================== MOVE MESH ======================
@@ -1517,6 +1511,11 @@ void StokesProblem<dim>::setup_initial_mesh() {
 
     unsigned int how_many; // how many components away from cardinal planes
 
+	std::ostringstream boundaries_file;
+	boundaries_file << system_parameters::output_folder << "/boundaries.txt";
+	std::ofstream fout_boundaries(boundaries_file.str().c_str());
+	fout_boundaries.close();
+
 	double zero_tolerance = 1e-3;
 	for (; cell != endc; ++cell) // loop over all cells
 	{
@@ -1539,7 +1538,12 @@ void StokesProblem<dim>::setup_initial_mesh() {
 			    cell->face(f)->set_manifold_id(std::min(cell->material_id(), cell->neighbor(f)->material_id()));
 			    // set boundary id between different materials
 				if (cell->material_id() != cell->neighbor(f)->material_id())
+				{
 				    cell->face(f)->set_all_boundary_indicators(2);
+				    std::ofstream fout_boundaries(boundaries_file.str().c_str(), std::ios::app);
+				    fout_boundaries << cell->face(f)->center()[0] << " " << cell->face(f)->center()[1]<< "\n";
+				    fout_boundaries.close();
+				}
 			}
 			else
 			    cell->face(f)->set_manifold_id(cell->material_id());
@@ -1686,10 +1690,6 @@ void StokesProblem<dim>::setup_quadrature_point_history() {
 
 	triangulation.clear_user_data();
 
-	{
-		std::vector<PointHistory<dim> > tmp;
-		tmp.swap(quadrature_point_history);
-	}
 	quadrature_point_history.resize(our_cells * quadrature_formula.size());
 
 	unsigned int history_index = 0;

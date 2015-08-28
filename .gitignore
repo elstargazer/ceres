@@ -1,0 +1,14 @@
+output/*
+CMakeFiles/*
+.DS_Store*
+.cproject
+.project
+.settings/*
+Makefile
+cmake_install.cmake
+CMakeLists.txt
+src/ceres
+cmake_install.cmake
+initial_mesh.eps
+local/*
+Debug/*
