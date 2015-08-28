@@ -1500,7 +1500,11 @@ void StokesProblem<dim>::setup_initial_mesh() {
 	std::ifstream mesh_stream(system_parameters::mesh_filename,
 			std::ifstream::in);
 	grid_in.read_ucd(mesh_stream);
-	std::ofstream out_eps ("initial_mesh.eps");
+
+	// output initial mesh in eps
+	std::ostringstream initial_mesh_file;
+	initial_mesh_file << system_parameters::output_folder << "/initial_mesh.eps";
+	std::ofstream out_eps (initial_mesh_file.str().c_str());
 	GridOut grid_out;
 	grid_out.write_eps (triangulation, out_eps);
 
