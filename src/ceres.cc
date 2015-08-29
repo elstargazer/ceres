@@ -443,8 +443,8 @@ std::vector<double> StokesProblem<dim>::flow_law(double r, double z)
 	//usually, these are the silicate, cmb ice, and surface ice viscosities
 	double eta_kinks[] = {system_parameters::eta_ceiling, eta_cmb, eta_surf};
 //	double eta_kinks[] = {1e22, 1e22, 1e22};
-	std::vector<double> etas(system_parameters::sizeof_depths / sizeof(double *) * 2);
-	for(unsigned int i=0; i < (system_parameters::sizeof_depths / sizeof(double *)); i++)
+	std::vector<double> etas(system_parameters::sizeof_depths * 2);
+	for(unsigned int i=0; i < system_parameters::sizeof_depths; i++)
 	{
 		etas[2*i] = system_parameters::depths[i];
 		etas[2*i + 1] = eta_kinks[i];
@@ -1540,7 +1540,7 @@ void StokesProblem<dim>::setup_initial_mesh() {
 			if (cell->neighbor(f) != endc)
 			{
 			    cell->face(f)->set_manifold_id(std::min(cell->material_id(), cell->neighbor(f)->material_id()));
-			    // set boundary id between different materials
+			    // set boundary id to 2 for faces between different materials
 				if (cell->material_id() != cell->neighbor(f)->material_id())
 				{
 				    cell->face(f)->set_all_boundary_indicators(2);

@@ -7,6 +7,7 @@ CMakeFiles/*
 Makefile
 cmake_install.cmake
 CMakeLists.txt
+CMakeCache.txt
 src/ceres
 cmake_install.cmake
 initial_mesh.eps
