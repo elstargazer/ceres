@@ -13,7 +13,7 @@ while (str~=-1)
     key = 'mesh_filename';
     if strncmpi(str,key',numel(key))
         
-        fprintf(in_new,[key ' = "' mesh_filename '";\n']);
+        fprintf(in_new,[key ' = "' mesh_filename(4:end) '";\n']);
     else        
         fprintf(in_new,'%s\n',str);
     end   
