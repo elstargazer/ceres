@@ -1,5 +1,9 @@
-function GeneratePowerLawMesh(matlab_config_filename,config_template_filename,...
-    r_mean, beta, intercept, Nrand)
+function GeneratePowerLawMesh(Files,r_mean, beta, intercept, Nrand)
+
+
+matlab_config_filename = Files.matlab_config_filename;
+config_template_filename = Files.config_template_filename;
+config_list_filename = Files.config_list_filename;
 
 %% Input paramters
 
@@ -119,3 +123,5 @@ for i=1:Nrand
     Write_ucd(meshStruct_def,deformed_mesh_filename,cell_type)
     
 end
+
+
