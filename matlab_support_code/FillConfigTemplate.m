@@ -10,12 +10,18 @@ fprintf(in_new,'%s',str);
 
 while (str~=-1)
     str = fgetl(in_old); 
-    key = 'mesh_filename';
-    if strncmpi(str,key',numel(key))
-        
-        fprintf(in_new,[key ' = "' mesh_filename(4:end) '";\n']);
-    else        
+    key_mesh = 'mesh_filename';
+    key_out  = 'output_folder';
+    if strncmpi(str,key_mesh,numel(key_mesh))    
+        fprintf(in_new,[key_mesh ' = "' mesh_filename(4:end) '";\n']);
+    elseif strncmpi(str,key_out,numel(key_out))
+            fprintf(in_new,[key_out ' = "output/output_' append '/";\n']);
+            mkdir(['../output/output_' append])
+
+    else
         fprintf(in_new,'%s\n',str);
+        
+        
     end   
 end
 
