@@ -30,6 +30,7 @@ double polar_r;
 
 // Body parameters
 double* depths;
+double transition_zone;
 unsigned int sizeof_depths;
 double crust_thickness;
 double r_core_eq;
@@ -42,8 +43,10 @@ double omegasquared;
 // Rheology parameters
 double eta_ceiling;
 double eta_floor;
+double cmb_contrast;
 double pressure_scale;
 double q;
+double ice_k;
 double ice_G;
 double rock_G;
 bool cylindrical;
@@ -95,6 +98,7 @@ void config_in::write_config()
 	fout_config << "mesh filename: " << system_parameters::mesh_filename << endl << endl;
     fout_config << "eq_r = " << system_parameters::eq_r << endl;
     fout_config << "polar_r = " << system_parameters::polar_r << endl;
+    fout_config << "transition_zone = " << system_parameters::transition_zone << endl;
     fout_config << "crust_thickness = " << system_parameters::crust_thickness << endl;
     fout_config << "r_core_eq = " << system_parameters::r_core_eq << endl;
     fout_config << "r_core_polar = " << system_parameters::r_core_polar << endl;
@@ -105,7 +109,9 @@ void config_in::write_config()
     fout_config << "eta_ceiling = " << system_parameters::eta_ceiling << endl;
     fout_config << "eta_floor = " << system_parameters::eta_floor << endl;
     fout_config << "pressure_scale = " << system_parameters::pressure_scale << endl;
+    fout_config << "cmb_contrast = " << system_parameters::cmb_contrast << endl;
     fout_config << "q = " << system_parameters::q << endl;
+	fout_config << "ice_k = " << system_parameters::ice_k << endl;
     fout_config << "ice_G = " << system_parameters::ice_G << endl;
     fout_config << "rock_G = " << system_parameters::rock_G << endl;
     fout_config << "cylindrical = " << system_parameters::cylindrical << endl;
@@ -212,6 +218,7 @@ config_in::config_in(char* filename)
 
 	    const Setting& body_parameters = root["body_parameters"];
 	    body_parameters.lookupValue("crust_thickness", system_parameters::crust_thickness);
+		body_parameters.lookupValue("transition_zone", system_parameters::transition_zone);
 	    body_parameters.lookupValue("r_core_eq", system_parameters::r_core_eq);
 	    body_parameters.lookupValue("r_core_polar", system_parameters::r_core_polar);
 	    body_parameters.lookupValue("mantle_rho", system_parameters::mantle_rho);
@@ -233,7 +240,9 @@ config_in::config_in(char* filename)
 	    rheology_parameters.lookupValue("eta_ceiling", system_parameters::eta_ceiling);
 	    rheology_parameters.lookupValue("eta_floor", system_parameters::eta_floor);
 	    rheology_parameters.lookupValue("pressure_scale", system_parameters::pressure_scale);
+		rheology_parameters.lookupValue("cmb_contrast", system_parameters::cmb_contrast);
 	    rheology_parameters.lookupValue("q", system_parameters::q);
+		rheology_parameters.lookupValue("ice_k", system_parameters::ice_k);
 	    rheology_parameters.lookupValue("ice_G", system_parameters::ice_G);
 	    rheology_parameters.lookupValue("rock_G", system_parameters::rock_G);
 	    rheology_parameters.lookupValue("cylindrical", system_parameters::cylindrical);
