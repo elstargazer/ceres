@@ -431,9 +431,10 @@ void StokesProblem<dim>::setup_dofs() {
 template<int dim>
 class Rheology {
 public:
-	double get_shell_local_viscosity(double &r, double &z);
-	double get_core_local_viscosity(double &r, double &z);
-	double get_local_G(double &r, double &z);
+	double get_shell_eta(double &r, double &z);
+	double get_core_eta(double &r, double &z);
+	double get_shell_G(double &r, double &z);
+	double get_core_G(double &r, double &z);
 
 private:
 	std::vector<double> flow_law_ice_GBS(double r, double z);
@@ -448,7 +449,7 @@ std::vector<double> Rheology<dim>::flow_law_ice_GBS(double r, double z)
 	double Tcmb = Tsurf * std::exp(system_parameters::q / 1000 * (system_parameters::crust_thickness - system_parameters::transition_zone)
 					/ system_parameters::ice_k);
 	// Grain Boundary Sliding
-	double eta_surf = 0.00792447 * std::exp(5893.67 / Tsurf);
+	double eta_surf = 0.00792447 * std::exp(5893.67 / Tsurf);//characteristic shear stress is 1 MPa
 	double eta_cmb = 0.00792447 * std::exp(5893.67 / Tcmb);
 	//usually, these are the silicate, cmb ice, and surface ice viscosities
 	double eta_kinks[] = {system_parameters::eta_ceiling / system_parameters::cmb_contrast, eta_cmb, eta_surf};
@@ -467,7 +468,7 @@ std::vector<double> Rheology<dim>::flow_law_ice_GBS(double r, double z)
 }
 
 template<int dim>
-double Rheology<dim>::get_shell_local_viscosity(double &r, double &z)
+double Rheology<dim>::get_shell_eta(double &r, double &z)
 {
 	double ecc = system_parameters::eq_r / system_parameters::polar_r;
 	double Rminusr = system_parameters::eq_r - system_parameters::polar_r;
@@ -540,22 +541,19 @@ double Rheology<dim>::get_shell_local_viscosity(double &r, double &z)
 }
 
 template<int dim>
-double Rheology<dim>::get_core_local_viscosity(double &r, double &z)
+double Rheology<dim>::get_core_eta(double &r, double &z)
 {
 	return system_parameters::eta_ceiling;
 }
 
 template<int dim>
-double Rheology<dim>::get_local_G(double &r, double &z) {
-	//generates constant shear moduli in crust and mantle with a sharp discontinuity
-	double a = system_parameters::eq_r - system_parameters::crust_thickness;
-	double b = system_parameters::polar_r - system_parameters::crust_thickness;
-	double expected_z = b * std::sqrt(1 - (r * r / a / a));
-
-	if (z <= expected_z)
-		return system_parameters::rock_G;
-	else
+double Rheology<dim>::get_shell_G(double &r, double &z) {
 		return system_parameters::ice_G;
+}
+
+template<int dim>
+double Rheology<dim>::get_core_G(double &r, double &z) {
+		return system_parameters::rock_G;
 }
 
 // Initialize the eta and G parts of the quadrature_point_history object
@@ -587,16 +585,19 @@ void StokesProblem<dim>::initialize_eta_and_G() {
 
 			unsigned int m_id = cell->material_id();
 			if(m_id == 0)
-				local_viscosity = rheology.get_shell_local_viscosity(r_value, z_value);
+				local_viscosity = rheology.get_shell_eta(r_value, z_value);
 			else
-				local_viscosity = rheology.get_core_local_viscosity(r_value, z_value);
+				local_viscosity = rheology.get_core_eta(r_value, z_value);
 
 			local_quadrature_points_history[q].first_eta = local_viscosity;
 			local_quadrature_points_history[q].new_eta = local_viscosity;
 
 			//defines local shear modulus
 			double local_G = 0;
-			local_G = rheology.get_local_G(r_value, z_value);
+			if(m_id == 0)
+				local_G = rheology.get_shell_G(r_value, z_value);
+			else
+				local_G = rheology.get_core_G(r_value, z_value);
 
 			local_quadrature_points_history[q].G = local_G;
 
@@ -1127,6 +1128,7 @@ void StokesProblem<dim>::solution_stesses() {
 		std::vector<Tensor<1, dim>> current_cell_grads(dim+1);
 		double cell_area = 0;
 
+		// Averages across each cell to find mean velocities and gradients
 		for (unsigned int q = 0; q < quadrature_formula.size(); ++q)
 		{
 			cell_area += fe_values.JxW(q);
@@ -1160,9 +1162,9 @@ void StokesProblem<dim>::solution_stesses() {
 		if (plastic_iteration == 0) {
 			double local_viscosity = 0;
 			if (material_list[i] == 0)
-				local_viscosity = rheology.get_shell_local_viscosity(points_list[i][0], points_list[i][1]);
+				local_viscosity = rheology.get_shell_eta(points_list[i][0], points_list[i][1]);
 			else
-				local_viscosity = rheology.get_core_local_viscosity(points_list[i][0], points_list[i][1]);
+				local_viscosity = rheology.get_core_eta(points_list[i][0], points_list[i][1]);
 			current_cell_viscosity = local_viscosity;
 		}
 		else
@@ -1243,13 +1245,10 @@ void StokesProblem<dim>::solution_stesses() {
 
 
 		// Prevents viscosities from dropping below the floor necessary for numerical stability
-		if (current_cell_viscosity < system_parameters::eta_floor)
-		{
-			current_cell_viscosity = system_parameters::eta_floor;
-			cell_viscosities.operator()(i) = cell_effective_viscosity;
-		}
-		else
-			cell_viscosities.operator()(i) = cell_effective_viscosity;
+		if (cell_effective_viscosity < system_parameters::eta_floor)
+			cell_effective_viscosity = system_parameters::eta_floor;
+
+		cell_viscosities.operator()(i) = cell_effective_viscosity;
 	}
 
 	std::cout << "   Number of failing cells: " << total_fails << "\n";
@@ -1396,7 +1395,6 @@ void StokesProblem<dim>::update_quadrature_point_history() {
 							* rotation);
 			local_quadrature_points_history[q].old_stress = rotated_new_stress;
 
-//				std::cout << velocities[q] <<"\n";
 			// For axisymmetric case, make the phi-phi element of stress tensor
 			local_quadrature_points_history[q].old_phiphi_stress =
 					(2 * local_eta_ve * velocities[q](0)
