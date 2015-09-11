@@ -438,6 +438,7 @@ public:
 
 private:
 	std::vector<double> flow_law_ice_GBS(double r, double z);
+	std::vector<double> flow_law_ice_GBS_no_lat(double Tsurf);
 };
 
 template<int dim>
@@ -452,8 +453,10 @@ std::vector<double> Rheology<dim>::flow_law_ice_GBS(double r, double z)
 	double eta_surf = 0.00792447 * std::exp(5893.67 / Tsurf);//characteristic shear stress is 1 MPa
 	double eta_cmb = 0.00792447 * std::exp(5893.67 / Tcmb);
 	//usually, these are the silicate, cmb ice, and surface ice viscosities
-	double eta_kinks[] = {system_parameters::eta_ceiling / system_parameters::cmb_contrast, eta_cmb, eta_surf};
-//	double eta_kinks[] = {1e22, 1e22, 1e22};
+	double eta_kinks[] = {system_parameters::eta_ceiling / system_parameters::cmb_contrast,
+			eta_cmb * system_parameters::contaminant_effect,
+			eta_surf * system_parameters::contaminant_effect};
+//	double eta_kinks[] = {1e20, 1e20, 1e20};
 	std::vector<double> etas(system_parameters::sizeof_depths * 2);
 	for(unsigned int i=0; i < system_parameters::sizeof_depths; i++)
 	{
@@ -464,6 +467,28 @@ std::vector<double> Rheology<dim>::flow_law_ice_GBS(double r, double z)
 //		std::cout << etas[ii] << " ";
 //	std::cout << endl;
 
+	return etas;
+}
+
+template<int dim>
+std::vector<double> Rheology<dim>::flow_law_ice_GBS_no_lat(double Tsurf)
+{
+	double Tcmb = Tsurf * std::exp(system_parameters::q / 1000 * (system_parameters::crust_thickness - system_parameters::transition_zone)
+					/ system_parameters::ice_k);
+	// Grain Boundary Sliding
+	double eta_surf = 0.00792447 * std::exp(5893.67 / Tsurf);//characteristic shear stress is 1 MPa
+	double eta_cmb = 0.00792447 * std::exp(5893.67 / Tcmb);
+	//usually, these are the silicate, cmb ice, and surface ice viscosities
+	double eta_kinks[] = {system_parameters::eta_ceiling / system_parameters::cmb_contrast,
+			eta_cmb * system_parameters::contaminant_effect,
+			eta_surf * system_parameters::contaminant_effect};
+//	double eta_kinks[] = {1e20, 1e20, 1e20};
+	std::vector<double> etas(system_parameters::sizeof_depths * 2);
+	for(unsigned int i=0; i < system_parameters::sizeof_depths; i++)
+	{
+		etas[2*i] = system_parameters::depths[i];
+		etas[2*i + 1] = eta_kinks[i];
+	}
 	return etas;
 }
 
@@ -502,6 +527,7 @@ double Rheology<dim>::get_shell_eta(double &r, double &z)
 		if (local_depth < 0)
 			local_depth = 0;
 
+//		std::vector<double> viscosity_function = flow_law_ice_GBS_no_lat(180);
 		std::vector<double> viscosity_function = flow_law_ice_GBS(r, z);
 
 		unsigned int n_visc_kinks = viscosity_function.size() / 2;
@@ -1217,7 +1243,7 @@ void StokesProblem<dim>::solution_stesses() {
 	}
 
 	// If there are enough failed cells, update eta at all quadrature points and perform smoothing
-	std::cout << "   Number of failing cells: " << total_fails << "\n\n";
+	std::cout << "   Number of failing cells: " << total_fails << "\n";
 	if (total_fails <= 20)
 //	if (total_fails <= 20 && plastic_iteration > 1) //DELETE AFTER TESTING
 	{
@@ -1298,6 +1324,7 @@ void StokesProblem<dim>::solution_stesses() {
 template<int dim>
 void StokesProblem<dim>::smooth_eta_field(std::vector<bool> failing_cells)
 {
+	std::cout << "   Smoothing viscosity field...\n";
 	unsigned int cell_no = 0;
 	for (typename DoFHandler<dim>::active_cell_iterator cell =
 			dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
