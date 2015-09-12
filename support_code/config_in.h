@@ -43,6 +43,7 @@ double omegasquared;
 // Rheology parameters
 double eta_ceiling;
 double eta_floor;
+double contaminant_effect;
 double cmb_contrast;
 double pressure_scale;
 double q;
@@ -108,6 +109,7 @@ void config_in::write_config()
     fout_config << "omegasquared = " << system_parameters::omegasquared << endl;
     fout_config << "eta_ceiling = " << system_parameters::eta_ceiling << endl;
     fout_config << "eta_floor = " << system_parameters::eta_floor << endl;
+	fout_config << "contaminant_effect = " << system_parameters::contaminant_effect << endl;
     fout_config << "pressure_scale = " << system_parameters::pressure_scale << endl;
     fout_config << "cmb_contrast = " << system_parameters::cmb_contrast << endl;
     fout_config << "q = " << system_parameters::q << endl;
@@ -239,6 +241,7 @@ config_in::config_in(char* filename)
 	    const Setting& rheology_parameters = root["rheology_parameters"];
 	    rheology_parameters.lookupValue("eta_ceiling", system_parameters::eta_ceiling);
 	    rheology_parameters.lookupValue("eta_floor", system_parameters::eta_floor);
+		rheology_parameters.lookupValue("contaminant_effect", system_parameters::contaminant_effect);
 	    rheology_parameters.lookupValue("pressure_scale", system_parameters::pressure_scale);
 		rheology_parameters.lookupValue("cmb_contrast", system_parameters::cmb_contrast);
 	    rheology_parameters.lookupValue("q", system_parameters::q);
