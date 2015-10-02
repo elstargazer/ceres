@@ -453,10 +453,10 @@ std::vector<double> Rheology<dim>::flow_law_ice_GBS(double r, double z)
 	double eta_surf = 0.00792447 * std::exp(5893.67 / Tsurf);//characteristic shear stress is 1 MPa
 	double eta_cmb = 0.00792447 * std::exp(5893.67 / Tcmb);
 	//usually, these are the silicate, cmb ice, and surface ice viscosities
-	double eta_kinks[] = {system_parameters::eta_ceiling / system_parameters::cmb_contrast,
-			eta_cmb * system_parameters::contaminant_effect,
-			eta_surf * system_parameters::contaminant_effect};
-//	double eta_kinks[] = {1e20, 1e20, 1e20};
+//	double eta_kinks[] = {system_parameters::eta_ceiling / system_parameters::cmb_contrast,
+//			eta_cmb * system_parameters::contaminant_effect,
+//			eta_surf * system_parameters::contaminant_effect};
+    double eta_kinks[] = {1e20, 1e20, 1e20};
 	std::vector<double> etas(system_parameters::sizeof_depths * 2);
 	for(unsigned int i=0; i < system_parameters::sizeof_depths; i++)
 	{
@@ -479,10 +479,10 @@ std::vector<double> Rheology<dim>::flow_law_ice_GBS_no_lat(double Tsurf)
 	double eta_surf = 0.00792447 * std::exp(5893.67 / Tsurf);//characteristic shear stress is 1 MPa
 	double eta_cmb = 0.00792447 * std::exp(5893.67 / Tcmb);
 	//usually, these are the silicate, cmb ice, and surface ice viscosities
-	double eta_kinks[] = {system_parameters::eta_ceiling / system_parameters::cmb_contrast,
-			eta_cmb * system_parameters::contaminant_effect,
-			eta_surf * system_parameters::contaminant_effect};
-//	double eta_kinks[] = {1e20, 1e20, 1e20};
+//	double eta_kinks[] = {system_parameters::eta_ceiling / system_parameters::cmb_contrast,
+//			eta_cmb * system_parameters::contaminant_effect,
+//			eta_surf * system_parameters::contaminant_effect};
+    double eta_kinks[] = {1e20, 1e20, 1e20};
 	std::vector<double> etas(system_parameters::sizeof_depths * 2);
 	for(unsigned int i=0; i < system_parameters::sizeof_depths; i++)
 	{
@@ -1584,6 +1584,16 @@ void StokesProblem<dim>::write_vertices(unsigned char boundary_that_we_need) {
 						}
 				}
 		}
+
+
+	// output mesh in ucd
+	std::ostringstream initial_mesh_file;
+	initial_mesh_file << system_parameters::output_folder << "/time"
+	<< Utilities::int_to_string(system_parameters::present_timestep, 2)
+	<< "_mesh.inp";
+	std::ofstream out_ucd (initial_mesh_file.str().c_str());
+	GridOut grid_out;
+	grid_out.write_ucd (triangulation, out_ucd);
 }
 
 //====================== SETUP INITIAL MESH ======================
