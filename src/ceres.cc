@@ -453,10 +453,10 @@ std::vector<double> Rheology<dim>::flow_law_ice_GBS(double r, double z)
 	double eta_surf = 0.00792447 * std::exp(5893.67 / Tsurf);//characteristic shear stress is 1 MPa
 	double eta_cmb = 0.00792447 * std::exp(5893.67 / Tcmb);
 	//usually, these are the silicate, cmb ice, and surface ice viscosities
-//	double eta_kinks[] = {system_parameters::eta_ceiling / system_parameters::cmb_contrast,
-//			eta_cmb * system_parameters::contaminant_effect,
-//			eta_surf * system_parameters::contaminant_effect};
-    double eta_kinks[] = {1e20, 1e20, 1e20};
+	double eta_kinks[] = {system_parameters::eta_ceiling / system_parameters::cmb_contrast,
+			eta_cmb * system_parameters::contaminant_effect,
+			eta_surf * system_parameters::contaminant_effect};
+    //double eta_kinks[] = {1e20, 9.9999e14, 1e15, 9.9999e19, 1e20};
 	std::vector<double> etas(system_parameters::sizeof_depths * 2);
 	for(unsigned int i=0; i < system_parameters::sizeof_depths; i++)
 	{
@@ -479,10 +479,10 @@ std::vector<double> Rheology<dim>::flow_law_ice_GBS_no_lat(double Tsurf)
 	double eta_surf = 0.00792447 * std::exp(5893.67 / Tsurf);//characteristic shear stress is 1 MPa
 	double eta_cmb = 0.00792447 * std::exp(5893.67 / Tcmb);
 	//usually, these are the silicate, cmb ice, and surface ice viscosities
-//	double eta_kinks[] = {system_parameters::eta_ceiling / system_parameters::cmb_contrast,
-//			eta_cmb * system_parameters::contaminant_effect,
-//			eta_surf * system_parameters::contaminant_effect};
-    double eta_kinks[] = {1e20, 1e20, 1e20};
+	double eta_kinks[] = {system_parameters::eta_ceiling / system_parameters::cmb_contrast,
+			eta_cmb * system_parameters::contaminant_effect,
+			eta_surf * system_parameters::contaminant_effect};
+//    double eta_kinks[] = {1e20, 9.9999e14, 1e15, 9.9999e19, 1e20};
 	std::vector<double> etas(system_parameters::sizeof_depths * 2);
 	for(unsigned int i=0; i < system_parameters::sizeof_depths; i++)
 	{
@@ -1832,7 +1832,7 @@ void StokesProblem<dim>::do_elastic_steps()
 
 		std::ofstream fout_times(times_filename.str().c_str(), std::ios::app);
 		fout_times << system_parameters::present_timestep << " "
-									<< system_parameters::present_time << " 0" << "\n";
+									<< system_parameters::present_time/SECSINYEAR << " 0" << "\n";
 		fout_times.close();
 		std::cout << "\n\nElastic iteration " << elastic_iteration
 							<< "\n";
@@ -1887,7 +1887,7 @@ void StokesProblem<dim>::do_flow_step() {
 				times_filename << system_parameters::output_folder << "/physical_times.txt";
 				std::ofstream fout_times(times_filename.str().c_str(), std::ios::app);
 				fout_times << system_parameters::present_timestep << " "
-							<< system_parameters::present_time << " " <<  plastic_iteration << "\n";
+							<< system_parameters::present_time/SECSINYEAR << " " <<  plastic_iteration << "\n";
 				fout_times.close();
 				break;
 			}
@@ -1935,7 +1935,7 @@ void StokesProblem<dim>::run() {
 	times_filename << system_parameters::output_folder << "/physical_times.txt";
 	std::ofstream fout_times(times_filename.str().c_str(), std::ios::app);
 	fout_times << system_parameters::present_timestep << " "
-					<< system_parameters::present_time << " 0\n";
+					<< system_parameters::present_time/SECSINYEAR << " 0\n";
 	fout_times.close();
 }
 
