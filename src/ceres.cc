@@ -741,9 +741,9 @@ void StokesProblem<dim>::assemble_system() {
 				double z_value = fe_values.quadrature_point(q)[1];
 				double local_density = 0;
 				if (m_id == 0)
-					local_density = system_parameters::mantle_rho;
-				else
 					local_density = system_parameters::core_rho;
+				else
+					local_density = system_parameters::mantle_rho;
 
 				//defines local viscosities
 				double local_viscosity = 0;
