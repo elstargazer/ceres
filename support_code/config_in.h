@@ -35,7 +35,7 @@ double intercept;
 double* depths_eta;
 double* eta_kinks;
 double* depths_rho;
-double rho;
+double* rho;
 int* material_id;
 double* G;
 
@@ -117,12 +117,25 @@ void config_in::write_config()
     fout_config << "intercept = " << system_parameters::intercept << endl;
 
     // rheology parameters
-    fout_config << "depths_eta = " << system_parameters::depths_eta << endl;
-    fout_config << "eta_kinks = " << system_parameters::eta_kinks << endl;
-    fout_config << "depths_rho = " << system_parameters::depths_rho << endl;
-    fout_config << "rho = " << system_parameters::rho << endl;
-    fout_config << "material_id = " << system_parameters::material_id << endl;
-    fout_config << "G = " << system_parameters::G << endl;
+
+    for(unsigned int i=0; i<system_parameters::sizeof_depths_eta; i++)
+        fout_config << "depths_eta[" << i << "] = " << system_parameters::depths_eta[i] << endl;
+
+    for(unsigned int i=0; i<system_parameters::sizeof_eta_kinks; i++)
+        fout_config << "eta_kinks[" << i << "] = " << system_parameters::eta_kinks[i] << endl;
+
+    for(unsigned int i=0; i<system_parameters::sizeof_depths_rho; i++)
+        fout_config << "depths_rho[" << i << "] = " << system_parameters::depths_rho[i] << endl;
+
+    for(unsigned int i=0; i<system_parameters::sizeof_rho; i++)
+        fout_config << "rho[" << i << "] = " << system_parameters::rho[i] << endl;
+
+    for(unsigned int i=0; i<system_parameters::sizeof_material_id; i++)
+        fout_config << "material_id[" << i << "] = " << system_parameters::material_id[i] << endl;
+
+    for(unsigned int i=0; i<system_parameters::sizeof_G; i++)
+        fout_config << "G[" << i << "] = " << system_parameters::G[i] << endl;
+
     fout_config << "eta_ceiling = " << system_parameters::eta_ceiling << endl;
     fout_config << "eta_floor = " << system_parameters::eta_floor << endl;
     fout_config << "pressure_scale = " << system_parameters::pressure_scale << endl;
@@ -159,8 +172,6 @@ void config_in::write_config()
 	fout_config << "present_timestep = " << system_parameters::present_timestep << endl;
 	fout_config << "total_viscous_steps = " << system_parameters::total_viscous_steps << endl;
 	
-
-
 	fout_config.close();
 }
 
@@ -232,22 +243,22 @@ config_in::config_in(char* filename)
 	  try
 	  {
 		  // get depths_eta ---------------------
-	      const Setting& set_depths_eta = cfg.lookup("body_parameters.depths_eta");
+	      const Setting& set_depths_eta = cfg.lookup("rheology_parameters.depths_eta");
 
 		  unsigned int ndepths_eta = set_depths_eta.getLength();
 		  system_parameters::sizeof_depths_eta = ndepths_eta;
 
-	//        cout << "Number of depth = " << ndepths << endl;
+//          cout << "Number of depth = " << ndepths_eta << endl;
 		  system_parameters::depths_eta = new double[ndepths_eta];
 
 		  for(unsigned int i=0; i<ndepths_eta; i++)
 		  {
 		      system_parameters::depths_eta[i] = set_depths_eta[i];
-	//		    cout << "depth[" << i << "] = " << system_parameters::depths[i] << endl;
+			    cout << "depth_eta[" << i << "] = " << system_parameters::depths_eta[i] << endl;
 		  }
 
-		  // get eta_kinks -------------------------
-	      const Setting& set_eta_kinks = cfg.lookup("body_parameters.eta_kinks");
+//		   get eta_kinks -------------------------
+	      const Setting& set_eta_kinks = cfg.lookup("rheology_parameters.eta_kinks");
 
 		  unsigned int neta_kinks = set_eta_kinks.getLength();
 		  system_parameters::sizeof_eta_kinks = neta_kinks;
@@ -258,11 +269,11 @@ config_in::config_in(char* filename)
 		  for(unsigned int i=0; i<neta_kinks; i++)
 		  {
 		      system_parameters::eta_kinks[i] = set_eta_kinks[i];
-	//		    cout << "depth[" << i << "] = " << system_parameters::depths[i] << endl;
+			  cout << "eta_kinks[" << i << "] = " << system_parameters::eta_kinks[i] << endl;
 		  }
 
 		  // get depths_rho -------------------------
-	      const Setting& set_depths_rho = cfg.lookup("body_parameters.depth_rho");
+	      const Setting& set_depths_rho = cfg.lookup("rheology_parameters.depths_rho");
 
 		  unsigned int ndepths_rho = set_depths_rho.getLength();
 		  system_parameters::sizeof_depths_rho = ndepths_rho;
@@ -273,11 +284,11 @@ config_in::config_in(char* filename)
 		  for(unsigned int i=0; i<ndepths_rho; i++)
 		  {
 		      system_parameters::depths_rho[i] = set_depths_rho[i];
-	//		    cout << "depth[" << i << "] = " << system_parameters::depths[i] << endl;
+    		 cout << "depths_rho[" << i << "] = " << system_parameters::depths_rho[i] << endl;
 		  }
 
 		  // get rho -------------------------
-	      const Setting& set_rho = cfg.lookup("body_parameters.rho");
+	      const Setting& set_rho = cfg.lookup("rheology_parameters.rho");
 
 		  unsigned int nrho = set_rho.getLength();
 		  system_parameters::sizeof_rho = nrho;
@@ -288,11 +299,11 @@ config_in::config_in(char* filename)
 		  for(unsigned int i=0; i<nrho; i++)
 		  {
 		      system_parameters::rho[i] = set_rho[i];
-	//		    cout << "depth[" << i << "] = " << system_parameters::depths[i] << endl;
+   		      cout << "rho[" << i << "] = " << system_parameters::rho[i] << endl;
 		  }
 
 		  // get material_id -------------------------
-	      const Setting& set_material_id = cfg.lookup("body_parameters.material_id");
+	      const Setting& set_material_id = cfg.lookup("rheology_parameters.material_id");
 
 		  unsigned int nmaterial_id = set_material_id.getLength();
 		  system_parameters::sizeof_material_id = nmaterial_id;
@@ -303,22 +314,22 @@ config_in::config_in(char* filename)
 		  for(unsigned int i=0; i<nmaterial_id; i++)
 		  {
 		      system_parameters::material_id[i] = set_material_id[i];
-	//		    cout << "depth[" << i << "] = " << system_parameters::depths[i] << endl;
+   		      cout << "material_id[" << i << "] = " << system_parameters::material_id[i] << endl;
 		  }
 
 		  // get G -------------------------
-	      const Setting& set_G = cfg.lookup("body_parameters.G");
+	      const Setting& set_G = cfg.lookup("rheology_parameters.G");
 
 		  unsigned int nG = set_G.getLength();
 		  system_parameters::sizeof_G = nG;
 
 	//        cout << "Number of depth = " << ndepths << endl;
-		  system_parameters::G = new int[nG];
+		  system_parameters::G = new double[nG];
 
 		  for(unsigned int i=0; i<nG; i++)
 		  {
 		      system_parameters::G[i] = set_G[i];
-	//		    cout << "depth[" << i << "] = " << system_parameters::depths[i] << endl;
+			    cout << "G[" << i << "] = " << system_parameters::G[i] << endl;
 		  }
 
 	    const Setting& rheology_parameters = root["rheology_parameters"];
