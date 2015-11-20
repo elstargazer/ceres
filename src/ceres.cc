@@ -472,21 +472,21 @@ double Rheology<dim>::get_eta(double &r, double &z)
 		    (z > system_parameters::p_axes[0] - system_parameters::depths_eta.back()))
 		{
 
-		double eps = 10.0;
-		while (error >= eps)
-		{
-			double a02 = a0 * a0;
-			double a03 = a0 * a02;
-			double a04 = a0 * a03;
-			double fofa = a04 - (2 * Rminusr * a03) - (group1 * a02)
-					+ (2 * r * r * Rminusr * a0) - (r * r * Rminusr * Rminusr);
-			double fprimeofa = 4 * a03 - (6 * Rminusr * a02) - (2 * group1 * a0)
-					+ (2 * r * r * Rminusr);
-			double deltaa = -fofa / fprimeofa;
-			a0 += deltaa;
-			error = std::abs(deltaa);
+		    double eps = 10.0;
+		    while (error >= eps)
+		    {
+			    double a02 = a0 * a0;
+			    double a03 = a0 * a02;
+			    double a04 = a0 * a03;
+			    double fofa = a04 - (2 * Rminusr * a03) - (group1 * a02)
+				            + (2 * r * r * Rminusr * a0) - (r * r * Rminusr * Rminusr);
+			    double fprimeofa = 4 * a03 - (6 * Rminusr * a02) - (2 * group1 * a0)
+					        + (2 * r * r * Rminusr);
+			    double deltaa = -fofa / fprimeofa;
+			    a0 += deltaa;
+			    error = std::abs(deltaa);
 //			cout << "error = " << error << endl;
-		}
+		    }
 		}
 		else
 		{
@@ -497,10 +497,15 @@ double Rheology<dim>::get_eta(double &r, double &z)
 		if (local_depth < 0)
 			local_depth = 0;
 
-		cout << "local depth = " << local_depth << " ";
-
 		if (local_depth > system_parameters::depths_eta.back())
-			return system_parameters::eta_kinks.back();
+		{
+			if (system_parameters::eta_kinks.back() < system_parameters::eta_floor)
+			    return system_parameters::eta_floor;
+			else if (system_parameters::eta_kinks.back() > system_parameters::eta_ceiling)
+			    return system_parameters::eta_ceiling;
+			else
+				return system_parameters::eta_kinks.back();
+		}
 
 		std::vector<double> viscosity_function = get_manual_eta_profile();
 
@@ -803,10 +808,11 @@ void StokesProblem<dim>::assemble_system() {
 
 				//defines local viscosities
 				double local_viscosity = 0;
-				if (plastic_iteration == 0) {
-					local_viscosity =
-							local_quadrature_points_history[q].first_eta;
-				} else
+				if (plastic_iteration == 0)
+				{
+					local_viscosity = local_quadrature_points_history[q].first_eta;
+				}
+				else
 					local_viscosity = new_viscosities[q][0];
 
 				// Define the local viscoelastic constants
@@ -1105,13 +1111,15 @@ void StokesProblem<dim>::solution_stesses() {
 	unsigned int total_fails = 0;
 	cell_viscosities.resize(0);
 	//loop across all the cells to find and adjust eta of failing cells
-	for (unsigned int i = 0; i < triangulation.n_active_cells(); i++) {
+	for (unsigned int i = 0; i < triangulation.n_active_cells(); i++)
+	{
 		double current_cell_viscosity = 0;
 
 		// Fill viscosities vector, analytically if plastic_iteration == 0 and from previous viscosities for later iteration
-		if (plastic_iteration == 0) {
-			double local_viscosity = 0;
-				local_viscosity = rheology.get_eta(points_list[i][0], points_list[i][1]);
+		if (plastic_iteration == 0)
+		{
+			double local_viscosity;
+		    local_viscosity = rheology.get_eta(points_list[i][0], points_list[i][1]);
 			current_cell_viscosity = local_viscosity;
 			cell_viscosities.push_back(current_cell_viscosity);
 		}
@@ -1224,8 +1232,11 @@ void StokesProblem<dim>::solution_stesses() {
 					ExcInternalError());
 
 			quad_viscosities[cell_no].resize(quadrature_formula.size());
+
 			for (unsigned int q = 0; q < quadrature_formula.size(); ++q)
 			{
+				if (plastic_iteration == 0)
+					local_quadrature_points_history[q].new_eta = local_quadrature_points_history[q].first_eta;
 				local_quadrature_points_history[q].new_eta /= reduction_factor[cell_no];
 				// Prevents viscosities from dropping below the floor necessary for numerical stability
 				if (local_quadrature_points_history[q].new_eta < system_parameters::eta_floor)
@@ -1843,8 +1854,6 @@ void StokesProblem<dim>::run()
 		if (system_parameters::continue_plastic_iterations == false)
 			system_parameters::continue_plastic_iterations = true;
 		std::cout << "\n\nViscoelastoplastic iteration " << VEPstep << "\n\n";
-		if (system_parameters::present_timestep == 0)
-			initialize_eta_and_G();
 
 		// Computes plasticity
 		do_flow_step();
