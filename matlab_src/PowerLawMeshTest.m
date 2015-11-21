@@ -1,10 +1,17 @@
-% ccc
-config_filename = '~/Dawn/FE/config/ConfigurationMatlab.cfg';
+ccc
+
+matlab_config_filename   = '../config/ConfigurationMatlab.cfg';
+config_template_filename = '../config/ConfigurationV2.cfg';
+config_list_filename     = '../RunList.txt';
+
+Files.matlab_config_filename   = matlab_config_filename;
+Files.config_template_filename = config_template_filename;
+Files.config_list_filename     = config_list_filename;
 
 Nmeshes   = 1; % number of meshes to be generated
 
 % Ceres topography spectrum power law parameters
-r_mean    = 470000;
-beta      = -3.72;
-intercept = 8.079;
-GeneratePowerLawMesh(config_filename,r_mean,beta,intercept,2)
+
+cfg = ReadConfig(Files);
+
+GeneratePowerLawMesh2(Files,cfg,Nmeshes);
