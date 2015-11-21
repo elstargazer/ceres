@@ -1,12 +1,21 @@
-function GenerateRandomMesh(config_filename,r_mean, beta, intercept, Nrand)
+function GeneratePowerLawMesh(Files,r_mean, beta, intercept, Nrand)
+
+
+matlab_config_filename = Files.matlab_config_filename;
+config_template_filename = Files.config_template_filename;
+config_list_filename = Files.config_list_filename;
 
 %% Input paramters
 
 L = 50;
 
+% core axes
+a_core = 420000;
+c_core = 405000;
+
 %% Read configuration file
 
-in = fopen(config_filename);
+in = fopen(matlab_config_filename);
 
 str = fscanf(in,'spherical_mesh_filename = %s\n',1);
 init_mesh_filename=str(2:end-2);
@@ -27,7 +36,6 @@ FigureSettings
 %% Initial parameters
 
 cell_type = 'quad';
-
 [path,name,ext] = fileparts(init_mesh_filename);
 
 %% Read init sphere mesh
@@ -61,7 +69,7 @@ for i=1:Nrand
     
     r_new = r.*r_shape;
     [x_new, ~, z_new] = sph2cart(lon,lat,r_new);
-        
+    
     meshStruct_def.E = meshStruct.E;
     meshStruct_def.V = [x_new z_new zeros(size(x_new))];
     
@@ -84,10 +92,36 @@ for i=1:Nrand
     meshStruct_def_quad.cell_mat = zeros(size(meshStruct_def_quad.E,1),1);
     meshStruct_def.cell_mat = zeros(size(meshStruct_def.E,1),1);
     
+    r_cell_center = zeros(1,size(meshStruct_def_quad.E,1));   
+    x_cell_center = zeros(1,size(meshStruct_def_quad.E,1));   
+    y_cell_center = zeros(1,size(meshStruct_def_quad.E,1)); 
+    z_cell_center = zeros(1,size(meshStruct_def_quad.E,1));
+    
+    for l = 1:size(meshStruct_def_quad.E,1)
+        x_cell_center(l) = mean(meshStruct_def_quad.V(meshStruct_def_quad.E(l,:),1));
+        y_cell_center(l) = mean(meshStruct_def_quad.V(meshStruct_def_quad.E(l,:),2));
+        z_cell_center(l) = mean(meshStruct_def_quad.V(meshStruct_def_quad.E(l,:),3));
+        
+        r_cell_center(l) = sqrt(x_cell_center(l).*x_cell_center(l) + ...
+            y_cell_center(l).*y_cell_center(l) + ...
+            z_cell_center(l).*z_cell_center(l));
+        
+    end
+    
+%     plot(x_cell_center,y_cell_center,'.');
+%     plot(meshStruct_def_quad.V(:,1),meshStruct_def_quad.V(:,2),'.');    
+    ell_r = (x_cell_center.^2)./(a_core.^2) + (y_cell_center.^2)./(c_core.^2);
+    core_condition = ell_r < 1.0;
+    meshStruct_def_quad.cell_mat(core_condition)=1;
+    
     deformed_mesh_filename = [path '/' name '_def_' num2str(i) ext];
     deformed_mesh_quad_filename = [path '/' name '_def_quad_' num2str(i) ext];
+    
+    FillConfigTemplate(config_template_filename,deformed_mesh_quad_filename,num2str(i))
     
     Write_ucd(meshStruct_def_quad,deformed_mesh_quad_filename,cell_type)
     Write_ucd(meshStruct_def,deformed_mesh_filename,cell_type)
     
 end
+
+
