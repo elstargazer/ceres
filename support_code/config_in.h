@@ -32,12 +32,12 @@ double beta;
 double intercept;
 
 // Rheology parameters
-double* depths_eta;
-double* eta_kinks;
-double* depths_rho;
-double* rho;
-int* material_id;
-double* G;
+vector<double> depths_eta;
+vector<double> eta_kinks;
+vector<double> depths_rho;
+vector<double> rho;
+vector<int> material_id;
+vector<double> G;
 
 double eta_ceiling;
 double eta_floor;
@@ -85,9 +85,8 @@ unsigned int total_viscous_steps;
 
 
 // ellipse axes
-double* q_axes;
-double* p_axes;
-
+vector<double> q_axes;
+vector<double> p_axes;
 
 }
 
@@ -248,12 +247,9 @@ config_in::config_in(char* filename)
 		  unsigned int ndepths_eta = set_depths_eta.getLength();
 		  system_parameters::sizeof_depths_eta = ndepths_eta;
 
-//          cout << "Number of depth = " << ndepths_eta << endl;
-		  system_parameters::depths_eta = new double[ndepths_eta];
-
 		  for(unsigned int i=0; i<ndepths_eta; i++)
 		  {
-		      system_parameters::depths_eta[i] = set_depths_eta[i];
+		      system_parameters::depths_eta.push_back(set_depths_eta[i]);
 			    cout << "depth_eta[" << i << "] = " << system_parameters::depths_eta[i] << endl;
 		  }
 
@@ -264,11 +260,10 @@ config_in::config_in(char* filename)
 		  system_parameters::sizeof_eta_kinks = neta_kinks;
 
 	//        cout << "Number of depth = " << ndepths << endl;
-		  system_parameters::eta_kinks = new double[neta_kinks];
 
 		  for(unsigned int i=0; i<neta_kinks; i++)
 		  {
-		      system_parameters::eta_kinks[i] = set_eta_kinks[i];
+		      system_parameters::eta_kinks.push_back(set_eta_kinks[i]);
 			  cout << "eta_kinks[" << i << "] = " << system_parameters::eta_kinks[i] << endl;
 		  }
 
@@ -279,11 +274,10 @@ config_in::config_in(char* filename)
 		  system_parameters::sizeof_depths_rho = ndepths_rho;
 
 	//        cout << "Number of depth = " << ndepths << endl;
-		  system_parameters::depths_rho = new double[ndepths_rho];
 
 		  for(unsigned int i=0; i<ndepths_rho; i++)
 		  {
-		      system_parameters::depths_rho[i] = set_depths_rho[i];
+		      system_parameters::depths_rho.push_back(set_depths_rho[i]);
     		 cout << "depths_rho[" << i << "] = " << system_parameters::depths_rho[i] << endl;
 		  }
 
@@ -294,11 +288,10 @@ config_in::config_in(char* filename)
 		  system_parameters::sizeof_rho = nrho;
 
 	//        cout << "Number of depth = " << ndepths << endl;
-		  system_parameters::rho = new double[nrho];
 
 		  for(unsigned int i=0; i<nrho; i++)
 		  {
-		      system_parameters::rho[i] = set_rho[i];
+		      system_parameters::rho.push_back(set_rho[i]);
    		      cout << "rho[" << i << "] = " << system_parameters::rho[i] << endl;
 		  }
 
@@ -309,11 +302,10 @@ config_in::config_in(char* filename)
 		  system_parameters::sizeof_material_id = nmaterial_id;
 
 	//        cout << "Number of depth = " << ndepths << endl;
-		  system_parameters::material_id = new int[nmaterial_id];
 
 		  for(unsigned int i=0; i<nmaterial_id; i++)
 		  {
-		      system_parameters::material_id[i] = set_material_id[i];
+		      system_parameters::material_id.push_back(set_material_id[i]);
    		      cout << "material_id[" << i << "] = " << system_parameters::material_id[i] << endl;
 		  }
 
@@ -324,11 +316,10 @@ config_in::config_in(char* filename)
 		  system_parameters::sizeof_G = nG;
 
 	//        cout << "Number of depth = " << ndepths << endl;
-		  system_parameters::G = new double[nG];
 
 		  for(unsigned int i=0; i<nG; i++)
 		  {
-		      system_parameters::G[i] = set_G[i];
+		      system_parameters::G.push_back(set_G[i]);
 			    cout << "G[" << i << "] = " << system_parameters::G[i] << endl;
 		  }
 
@@ -421,10 +412,6 @@ config_in::config_in(char* filename)
 	  {
 		  cerr << "We've got a problem in the time step parameters block" << endl;
 	  }
-
-
-	  system_parameters::q_axes = new double[system_parameters::sizeof_material_id];
-	  system_parameters::p_axes = new double[system_parameters::sizeof_material_id];
 
 	  write_config();
 }
