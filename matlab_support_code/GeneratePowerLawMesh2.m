@@ -14,11 +14,8 @@ layer_mat = cfg.mat_id;
 
 L = 50;
 
-% core axes
-h = 200000;
-
-nsq = 12;
-nl  = [20 5];
+nsq = 24;
+nl  = [30 15];
 
 %% plume
 
@@ -56,8 +53,8 @@ cell_type = 'quad';
 
 %% Generate random power law spectrum
 
-% layer_mat(0) -> core
-% layer_mat(1) -> outer shell
+% layer_mat(1) -> core
+% layer_mat(0) -> outer shell
 
 for i=1:Nrand
     
