@@ -1458,12 +1458,49 @@ void StokesProblem<dim>::update_time_interval()
 			((system_parameters::initial_disp_target - system_parameters::final_disp_target) /
 					system_parameters::total_viscous_steps *
 					(system_parameters::present_timestep - system_parameters::initial_elastic_iterations));
+
+	double zero_tolerance = 1e-3;
 	double max_velocity = 0;
-	for(unsigned int i=0; i<solution.n_blocks()-1; i++)
-		for(unsigned int j=0; j<solution.block(i).size(); j++)
-			if(std::abs(solution.block(i)(j)) > max_velocity)
-				max_velocity = std::abs(solution.block(i)(j));
-	// NOTE: It is possible for this time interval to be very different from that used in the FE calculation.
+	for (typename DoFHandler<dim>::active_cell_iterator cell =
+				dof_handler.begin_active(); cell != dof_handler.end(); ++cell)// loop over all cells
+	{
+		if(cell->at_boundary())
+		{
+			int zero_faces = 0;
+			for(unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; f++)
+				for(unsigned int i=0; i<dim; i++)
+					if (fabs(cell->face(f)->center()[i]) < zero_tolerance)
+						zero_faces++;
+			if (zero_faces==0)
+			{
+				for (unsigned int v = 0; v < GeometryInfo<dim>::vertices_per_cell; ++v)
+				{
+					Point<dim> vertex_velocity;
+					Point<dim> vertex_position;
+					for (unsigned int d = 0; d < dim; ++d)
+					{
+						vertex_velocity[d] = solution(cell->vertex_dof_index(v, d));
+						vertex_position[d] = cell->vertex(v)[d];
+					}
+					//velocity to be evaluated is the radial component of a surface vertex
+					double local_velocity = 0;
+					for (unsigned int d = 0; d < dim; ++d)
+					{
+						local_velocity += vertex_velocity[d] * vertex_position [d];
+					}
+					local_velocity /= std::sqrt( vertex_position.square() );
+					if(local_velocity < 0)
+						local_velocity *= -1;
+					if(local_velocity > max_velocity)
+					{
+						max_velocity = local_velocity;
+										}
+				}
+			}
+		}
+	}
+
+	// NOTE: It is possible for this time interval to be very different from that used in the viscoelasticity calculation.
 	system_parameters::current_time_interval = move_goal_per_step / max_velocity;
 	double step_time_yr = system_parameters::current_time_interval / SECSINYEAR;
 	std::cout << "\n   Viscous time for moving mesh: " << step_time_yr << " yr";
