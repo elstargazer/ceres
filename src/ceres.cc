@@ -207,7 +207,7 @@ double BoundaryValuesP<dim>::value(const Point<dim> &p,
 	Assert(component < this->n_components,
 			ExcIndexRange (component, 0, this->n_components));
 
-	Assert(p[0] >= -10, ExcLowerRange (p[0], 0)); //POSSIBLY FUDGED- LOOK INTO
+	Assert(p[0] >= -10, ExcLowerRange (p[0], 0)); //value of -10 is to permit some small numerical error moving nodes left of x=0; a << value is in fact sufficient
 
 	return 0;
 }
@@ -627,10 +627,10 @@ void StokesProblem<dim>::assemble_system() {
 	A_Grav_namespace::AnalyticGravity<dim> * aGrav =
 			new A_Grav_namespace::AnalyticGravity<dim>;
 	std::vector<double> grav_parameters;
-	grav_parameters.push_back(system_parameters::q_axes[0]);
-	grav_parameters.push_back(system_parameters::p_axes[0]);
-	grav_parameters.push_back(system_parameters::q_axes[1]);
-	grav_parameters.push_back(system_parameters::p_axes[1]);
+	grav_parameters.push_back(system_parameters::q_axes[system_parameters::present_timestep * 2 + 0]);
+	grav_parameters.push_back(system_parameters::p_axes[system_parameters::present_timestep * 2 + 0]);
+	grav_parameters.push_back(system_parameters::q_axes[system_parameters::present_timestep * 2 + 1]);
+	grav_parameters.push_back(system_parameters::p_axes[system_parameters::present_timestep * 2 + 1]);
 	grav_parameters.push_back(system_parameters::rho[0]);
 	grav_parameters.push_back(system_parameters::rho[1]);
 
@@ -1455,12 +1455,49 @@ void StokesProblem<dim>::update_time_interval()
 			((system_parameters::initial_disp_target - system_parameters::final_disp_target) /
 					system_parameters::total_viscous_steps *
 					(system_parameters::present_timestep - system_parameters::initial_elastic_iterations));
+
+	double zero_tolerance = 1e-3;
 	double max_velocity = 0;
-	for(unsigned int i=0; i<solution.n_blocks()-1; i++)
-		for(unsigned int j=0; j<solution.block(i).size(); j++)
-			if(std::abs(solution.block(i)(j)) > max_velocity)
-				max_velocity = std::abs(solution.block(i)(j));
-	// NOTE: It is possible for this time interval to be very different from that used in the FE calculation.
+	for (typename DoFHandler<dim>::active_cell_iterator cell =
+				dof_handler.begin_active(); cell != dof_handler.end(); ++cell)// loop over all cells
+	{
+		if(cell->at_boundary())
+		{
+			int zero_faces = 0;
+			for(unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; f++)
+				for(unsigned int i=0; i<dim; i++)
+					if (fabs(cell->face(f)->center()[i]) < zero_tolerance)
+						zero_faces++;
+			if (zero_faces==0)
+			{
+				for (unsigned int v = 0; v < GeometryInfo<dim>::vertices_per_cell; ++v)
+				{
+					Point<dim> vertex_velocity;
+					Point<dim> vertex_position;
+					for (unsigned int d = 0; d < dim; ++d)
+					{
+						vertex_velocity[d] = solution(cell->vertex_dof_index(v, d));
+						vertex_position[d] = cell->vertex(v)[d];
+					}
+					//velocity to be evaluated is the radial component of a surface vertex
+					double local_velocity = 0;
+					for (unsigned int d = 0; d < dim; ++d)
+					{
+						local_velocity += vertex_velocity[d] * vertex_position [d];
+					}
+					local_velocity /= std::sqrt( vertex_position.square() );
+					if(local_velocity < 0)
+						local_velocity *= -1;
+					if(local_velocity > max_velocity)
+					{
+						max_velocity = local_velocity;
+										}
+				}
+			}
+		}
+	}
+
+	// NOTE: It is possible for this time interval to be very different from that used in the viscoelasticity calculation.
 	system_parameters::current_time_interval = move_goal_per_step / max_velocity;
 	double step_time_yr = system_parameters::current_time_interval / SECSINYEAR;
 	std::cout << "\n   Viscous time for moving mesh: " << step_time_yr << " yr";
@@ -1470,7 +1507,7 @@ void StokesProblem<dim>::update_time_interval()
 
 template<int dim>
 void StokesProblem<dim>::move_mesh() {
-	std::cout << "\n" << "   Moving mesh...";
+	std::cout << "\n" << "   Moving mesh...\n";
 
 
 	std::vector<bool> vertex_touched(triangulation.n_vertices(), false);
@@ -1498,13 +1535,11 @@ void StokesProblem<dim>::move_mesh() {
 		system_parameters::q_axes.push_back(ellipse_axes[0]);
 		system_parameters::p_axes.push_back(ellipse_axes[1]);
 
-		std::cout << "a = " << ellipse_axes[0] << " c = " << ellipse_axes[1] << std::endl;
+		std::cout << "a_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[0]
+				<< " " << " c_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[1] << std::endl;
 		ellipse_axes.clear();
 	}
-
 	write_vertices(0);
-
-
 }
 
 //====================== WRITE VERTICES TO FILE ======================
@@ -1512,7 +1547,7 @@ void StokesProblem<dim>::move_mesh() {
 template<int dim>
 void StokesProblem<dim>::write_vertices(unsigned char boundary_that_we_need) {
 	std::ostringstream vertices_output;
-	vertices_output << system_parameters::output_folder << "/time_" <<
+	vertices_output << system_parameters::output_folder << "/time" <<
 		   Utilities::int_to_string(system_parameters::present_timestep, 2) << "_" <<
 		   Utilities::int_to_string(boundary_that_we_need, 2) <<
 		   "_surface.txt";
@@ -1542,7 +1577,7 @@ void StokesProblem<dim>::write_vertices(unsigned char boundary_that_we_need) {
 
 	// output mesh in ucd
 	std::ostringstream initial_mesh_file;
-	initial_mesh_file << system_parameters::output_folder << "/time_" <<
+	initial_mesh_file << system_parameters::output_folder << "/time" <<
     Utilities::int_to_string(system_parameters::present_timestep, 2) << "_" <<
 	Utilities::int_to_string(boundary_that_we_need, 2) <<
 	"_mesh.inp";
@@ -1583,7 +1618,7 @@ void StokesProblem<dim>::setup_initial_mesh() {
 	double zero_tolerance = 1e-3;
 	for (; cell != endc; ++cell) // loop over all cells
 	{
-		cell->set_manifold_id(cell->material_id());
+//		cell->set_manifold_id(cell->material_id());
 		for (unsigned int f = 0; f < GeometryInfo<dim>::faces_per_cell; ++f) // loop over all vertices
 		{
 			if (cell->face(f)->at_boundary())
@@ -1601,15 +1636,6 @@ void StokesProblem<dim>::setup_initial_mesh() {
 					cell->face(f)->set_all_boundary_indicators(0); // if face center coordinates > zero_tol, set bnry indicators to 0
 				else
 				    cell->face(f)->set_all_boundary_indicators(99);
-			}
-			if (cell->neighbor(f) != endc)
-			{
-			    // set boundary id for faces between different materials
-				if (cell->material_id() != cell->neighbor(f)->material_id())
-				{
-				    cell->face(f)->set_all_boundary_indicators(std::max(cell->material_id(),
-				    		                                  cell->neighbor(f)->material_id()));
-				}
 			}
 		}
 	}
@@ -1701,13 +1727,15 @@ void StokesProblem<dim>::setup_initial_mesh() {
 	// Find ellipsoidal axes for all layers
 	std::vector<double> ellipse_axes(0);
 	// compute fit to boundary 0, 1, 2 ...
+	std::cout << endl;
 	for(unsigned int i = 0; i<system_parameters::sizeof_material_id;i++)
 	{
 		ellipsoid.compute_fit(ellipse_axes, system_parameters::material_id[i]);
 		system_parameters::q_axes.push_back(ellipse_axes[0]);
 		system_parameters::p_axes.push_back(ellipse_axes[1]);
 
-		std::cout << "a = " << ellipse_axes[0] << " c = " << ellipse_axes[1] << std::endl;
+		std::cout << "a_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[0]
+				<< " " << " c_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[1] << std::endl;
 		ellipse_axes.clear();
 	}
 	write_vertices(0);
@@ -1829,7 +1857,6 @@ void StokesProblem<dim>::do_flow_step() {
 				break;
 			}
 			plastic_iteration++;
-//			std::cout << std::endl << "\a";
 		}
 	}
 }
@@ -1906,6 +1933,8 @@ int main(int argc, char* argv[]) {
 
 		StokesProblem<2> flow_problem(1);
         flow_problem.run();
+
+		std::cout << std::endl << "\a";
 
 		t2 = std::clock();
 		float diff (((float)t2 - (float)t1) / (float)CLOCKS_PER_SEC);
