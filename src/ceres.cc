@@ -627,13 +627,10 @@ void StokesProblem<dim>::assemble_system() {
 	A_Grav_namespace::AnalyticGravity<dim> * aGrav =
 			new A_Grav_namespace::AnalyticGravity<dim>;
 	std::vector<double> grav_parameters;
-	grav_parameters.push_back(system_parameters::q_axes[system_parameters::present_timestep + 0]);
-	grav_parameters.push_back(system_parameters::p_axes[system_parameters::present_timestep + 0]);
-// Note these two core dimensions are fixed to the outer shell and are temporary until a core fitting routine can be re-made
-	grav_parameters.push_back(system_parameters::q_axes[system_parameters::present_timestep + 0]-system_parameters::depths_rho[0]);
-	grav_parameters.push_back(system_parameters::p_axes[system_parameters::present_timestep + 0]-system_parameters::depths_rho[0]);
-//	grav_parameters.push_back(system_parameters::q_axes[1]);
-//	grav_parameters.push_back(system_parameters::p_axes[1]);
+	grav_parameters.push_back(system_parameters::q_axes[system_parameters::present_timestep * 2 + 0]);
+	grav_parameters.push_back(system_parameters::p_axes[system_parameters::present_timestep * 2 + 0]);
+	grav_parameters.push_back(system_parameters::q_axes[system_parameters::present_timestep * 2 + 1]);
+	grav_parameters.push_back(system_parameters::p_axes[system_parameters::present_timestep * 2 + 1]);
 	grav_parameters.push_back(system_parameters::rho[0]);
 	grav_parameters.push_back(system_parameters::rho[1]);
 
@@ -1531,12 +1528,17 @@ void StokesProblem<dim>::move_mesh() {
 
 	// Find ellipsoidal axes for all layers
 	std::vector<double> ellipse_axes(0);
-	// compute fit to outer boundary
-	ellipsoid.compute_fit(ellipse_axes, system_parameters::material_id[0]);
-	system_parameters::q_axes.push_back(ellipse_axes[0]);
-	system_parameters::p_axes.push_back(ellipse_axes[1]);
-	std::cout << "a = " << ellipse_axes[0] << " c = " << ellipse_axes[1] << std::endl;
-	ellipse_axes.clear();
+	// compute fit to boundary 0, 1, 2 ...
+	for(unsigned int i = 0; i<system_parameters::sizeof_material_id;i++)
+	{
+		ellipsoid.compute_fit(ellipse_axes, system_parameters::material_id[i]);
+		system_parameters::q_axes.push_back(ellipse_axes[0]);
+		system_parameters::p_axes.push_back(ellipse_axes[1]);
+
+		std::cout << "a_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[0]
+				<< " " << " c_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[1] << std::endl;
+		ellipse_axes.clear();
+	}
 	write_vertices(0);
 }
 
@@ -1724,12 +1726,18 @@ void StokesProblem<dim>::setup_initial_mesh() {
 
 	// Find ellipsoidal axes for all layers
 	std::vector<double> ellipse_axes(0);
-	// compute fit to outer boundary
-	ellipsoid.compute_fit(ellipse_axes, system_parameters::material_id[0]);
-	system_parameters::q_axes.push_back(ellipse_axes[0]);
-	system_parameters::p_axes.push_back(ellipse_axes[1]);
-	std::cout << "a = " << ellipse_axes[0] << " c = " << ellipse_axes[1] << std::endl;
-	ellipse_axes.clear();
+	// compute fit to boundary 0, 1, 2 ...
+	std::cout << endl;
+	for(unsigned int i = 0; i<system_parameters::sizeof_material_id;i++)
+	{
+		ellipsoid.compute_fit(ellipse_axes, system_parameters::material_id[i]);
+		system_parameters::q_axes.push_back(ellipse_axes[0]);
+		system_parameters::p_axes.push_back(ellipse_axes[1]);
+
+		std::cout << "a_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[0]
+				<< " " << " c_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[1] << std::endl;
+		ellipse_axes.clear();
+	}
 	write_vertices(0);
 }
 
