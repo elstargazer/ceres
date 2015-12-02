@@ -156,6 +156,7 @@ private:
 	void initialize_eta_and_G();
 	void move_mesh();
 	void write_vertices(unsigned char);
+	void write_mesh();
 	void setup_quadrature_point_history();
 	void update_quadrature_point_history();
 
@@ -1443,7 +1444,6 @@ void StokesProblem<dim>::update_quadrature_point_history() {
 							+ local_chi_ve
 									* local_quadrature_points_history[q].old_phiphi_stress);
 		}
-
 	}
 }
 
@@ -1507,9 +1507,8 @@ void StokesProblem<dim>::update_time_interval()
 
 template<int dim>
 void StokesProblem<dim>::move_mesh() {
+
 	std::cout << "\n" << "   Moving mesh...\n";
-
-
 	std::vector<bool> vertex_touched(triangulation.n_vertices(), false);
 	for (typename DoFHandler<dim>::active_cell_iterator cell =
 			dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
@@ -1540,6 +1539,19 @@ void StokesProblem<dim>::move_mesh() {
 		ellipse_axes.clear();
 	}
 	write_vertices(0);
+}
+
+template<int dim>
+void StokesProblem<dim>::write_mesh()
+{
+	// output mesh in ucd
+	std::ostringstream initial_mesh_file;
+	initial_mesh_file << system_parameters::output_folder << "/time" <<
+    Utilities::int_to_string(system_parameters::present_timestep, 2) <<
+	"_mesh.inp";
+	std::ofstream out_ucd (initial_mesh_file.str().c_str());
+	GridOut grid_out;
+	grid_out.write_ucd (triangulation, out_ucd);
 }
 
 //====================== WRITE VERTICES TO FILE ======================
@@ -1573,17 +1585,6 @@ void StokesProblem<dim>::write_vertices(unsigned char boundary_that_we_need) {
 						}
 				}
 		}
-
-
-	// output mesh in ucd
-	std::ostringstream initial_mesh_file;
-	initial_mesh_file << system_parameters::output_folder << "/time" <<
-    Utilities::int_to_string(system_parameters::present_timestep, 2) << "_" <<
-	Utilities::int_to_string(boundary_that_we_need, 2) <<
-	"_mesh.inp";
-	std::ofstream out_ucd (initial_mesh_file.str().c_str());
-	GridOut grid_out;
-	grid_out.write_ucd (triangulation, out_ucd);
 }
 
 //====================== SETUP INITIAL MESH ======================
@@ -1618,7 +1619,6 @@ void StokesProblem<dim>::setup_initial_mesh() {
 	double zero_tolerance = 1e-3;
 	for (; cell != endc; ++cell) // loop over all cells
 	{
-//		cell->set_manifold_id(cell->material_id());
 		for (unsigned int f = 0; f < GeometryInfo<dim>::faces_per_cell; ++f) // loop over all vertices
 		{
 			if (cell->face(f)->at_boundary())
@@ -1640,7 +1640,7 @@ void StokesProblem<dim>::setup_initial_mesh() {
 		}
 	}
 
-//	triangulation.refine_global(system_parameters::global_refinement);
+	triangulation.refine_global(system_parameters::global_refinement);
 //
 ////refines region near r=0
 //	if (system_parameters::small_r_refinement != 0) {
@@ -1739,6 +1739,7 @@ void StokesProblem<dim>::setup_initial_mesh() {
 		ellipse_axes.clear();
 	}
 	write_vertices(0);
+	write_mesh();
 }
 
 //====================== REFINE MESH ======================
@@ -1803,6 +1804,7 @@ void StokesProblem<dim>::do_elastic_steps()
 							<< "\n";
 		setup_dofs();
 		write_vertices(0);
+		write_mesh();
 
 		if (system_parameters::present_timestep == 0)
 			initialize_eta_and_G();
@@ -1836,6 +1838,7 @@ void StokesProblem<dim>::do_flow_step() {
 			std::cout << "Plasticity iteration " << plastic_iteration << "\n";
 			setup_dofs();
 			write_vertices(0);
+			write_mesh();
 
 			std::cout << "   Assembling..." << std::endl << std::flush;
 			assemble_system();
@@ -1870,6 +1873,11 @@ void StokesProblem<dim>::run()
 	// Sets up mesh and applies elastic displacement
 	setup_initial_mesh();
 	setup_quadrature_point_history();
+
+//	write_vertices(0);
+//	write_vertices(1);
+//	write_vertices(99);
+
 	do_elastic_steps();
 
 	// Computes viscous timesteps
@@ -1894,6 +1902,7 @@ void StokesProblem<dim>::run()
 
 	// Write the moved vertices time for the last viscous step
 	write_vertices(0);
+	write_mesh();
 	std::ostringstream times_filename;
 	times_filename << system_parameters::output_folder << "/physical_times.txt";
 	std::ofstream fout_times(times_filename.str().c_str(), std::ios::app);
