@@ -58,7 +58,10 @@ cell_type = 'quad';
 
 for i=1:Nrand
     
-    lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L);   
+    lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L); 
+    
+    % make lmcosi_cmb = [0 0 r_mean-cfg.depths_rho 0] to make a spherical
+    % core
     lmcosi_cmb = PowerLawSH(r_mean-cfg.depths_rho,beta-1,intercept,L);
   
     % make shape always oblate
