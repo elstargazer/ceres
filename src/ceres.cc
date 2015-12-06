@@ -1529,9 +1529,13 @@ void StokesProblem<dim>::move_mesh() {
 						* system_parameters::current_time_interval;
 			}
 
+
+	std::ostringstream ellipses_filename;
+	ellipses_filename << system_parameters::output_folder << "/ellipse_fits.txt";
 	// Find ellipsoidal axes for all layers
 	std::vector<double> ellipse_axes(0);
 	// compute fit to boundary 0, 1, 2 ...
+	std::cout << endl;
 	for(unsigned int i = 0; i<system_parameters::sizeof_material_id;i++)
 	{
 		ellipsoid.compute_fit(ellipse_axes, system_parameters::material_id[i]);
@@ -1541,6 +1545,11 @@ void StokesProblem<dim>::move_mesh() {
 		std::cout << "a_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[0]
 				<< " " << " c_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[1] << std::endl;
 		ellipse_axes.clear();
+
+		std::ofstream fout_ellipses(ellipses_filename.str().c_str(), std::ios::app);
+		fout_ellipses << system_parameters::present_timestep << " a_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[0]
+						<< " " << " c_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[1] << endl;
+		fout_ellipses.close();
 	}
 	write_vertices(0);
 }
@@ -1728,6 +1737,11 @@ void StokesProblem<dim>::setup_initial_mesh() {
 //		}
 //	}
 
+	std::ostringstream ellipses_filename;
+	ellipses_filename << system_parameters::output_folder << "/ellipse_fits.txt";
+	std::ofstream fout_ellipses(ellipses_filename.str().c_str());
+	fout_ellipses.close();
+
 	// Find ellipsoidal axes for all layers
 	std::vector<double> ellipse_axes(0);
 	// compute fit to boundary 0, 1, 2 ...
@@ -1741,9 +1755,16 @@ void StokesProblem<dim>::setup_initial_mesh() {
 		std::cout << "a_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[0]
 				<< " " << " c_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[1] << std::endl;
 		ellipse_axes.clear();
+
+		std::ofstream fout_ellipses(ellipses_filename.str().c_str(), std::ios::app);
+		fout_ellipses << system_parameters::present_timestep << " a_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[0]
+						<< " " << " c_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[1] << endl;
+		fout_ellipses.close();
 	}
 	write_vertices(0);
 	write_mesh();
+
+
 }
 
 //====================== REFINE MESH ======================
