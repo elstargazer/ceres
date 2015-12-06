@@ -15,7 +15,7 @@ layer_mat = cfg.mat_id;
 L = 50;
 
 nsq = 24;
-nl  = [30 15];
+nl  = [30 8];
 
 %% plume
 
@@ -59,7 +59,7 @@ cell_type = 'quad';
 for i=1:Nrand
     
     lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L);   
-    lmcosi_cmb = PowerLawSH(r_mean-cfg.depths_rho,beta-1,intercept,L);
+    lmcosi_cmb = PowerLawSH(r_mean-cfg.depths_rho,beta-3,intercept,L);
   
     % make shape it always oblate
     lmcosi_shape(4,3) = -abs(lmcosi_shape(4,3));

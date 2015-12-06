@@ -635,6 +635,10 @@ void StokesProblem<dim>::assemble_system() {
 	grav_parameters.push_back(system_parameters::rho[0]);
 	grav_parameters.push_back(system_parameters::rho[1]);
 
+	for(int i=0; i<6; i++)
+		std::cout << grav_parameters[i] << " ";
+	std::cout << endl;
+
 	aGrav->setup_vars(grav_parameters);
 
 	std::vector<Vector<double> > rhs_values(n_q_points,
