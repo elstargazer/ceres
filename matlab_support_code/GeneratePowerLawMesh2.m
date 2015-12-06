@@ -58,18 +58,24 @@ cell_type = 'quad';
 
 for i=1:Nrand
     
-    lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L);   
+    lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L); 
+    
+    % make lmcosi_cmb = [0 0 r_mean-cfg.depths_rho 0] to make a spherical
+    % core
     lmcosi_cmb = PowerLawSH(r_mean-cfg.depths_rho,beta-1,intercept,L);
   
-    % make shape it always oblate
+    % make shape always oblate
     lmcosi_shape(4,3) = -abs(lmcosi_shape(4,3));
+
+    % make core always oblate
+    lmcosi_cmb(4,3) = -abs(lmcosi_cmb(4,3));
     
     meshStruct_def_quad = GenerateQuadLayerMesh(...
         lmcosi_cmb,lmcosi_shape,layer_mat,nsq,nl);
     figure; hold on;
     plot(meshStruct_def_quad.V(:,1),meshStruct_def_quad.V(:,2),'.');
     
-    
+
 %     for k=1:numel(plume_cell_mat)
 %         % put a plume
 %         plum_distance = sqrt( (meshStruct_def_quad.V(:,1)-xp(k)).^2 + ...
