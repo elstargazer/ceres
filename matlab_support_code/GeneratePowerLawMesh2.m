@@ -12,10 +12,10 @@ beta      = cfg.beta;
 intercept = cfg.intercept;
 layer_mat = cfg.mat_id;
 
-L = 50;
+L = 80;
 
-nsq = 24;
-nl  = [30 8];
+nsq = 9*4;
+nl  = [7*4 3*4];
 
 %% plume
 
@@ -56,20 +56,48 @@ cell_type = 'quad';
 % layer_mat(1) -> core
 % layer_mat(0) -> outer shell
 
+
+%% Compute hydrostatic shape
+
+[fh,fval]=HydrostaticStateExact2l(...
+    cfg.r_mean,...
+    cfg.r_mean-cfg.depths_rho,...
+    cfg.T,...
+    cfg.rho(1),...
+    cfg.rho(2),0.1, 0.1);
+
+% outer shape
+[a,~,c] = fr2abc(cfg.r_mean,fh(1),0);
+
+fi = (-90:1:90);
+lambda = (-180:1:180);
+[fii,lambdai] = meshgrid(fi,lambda);
+
+r_ell = TriEllRadVec(fii/180*pi,lambdai/180*pi,a,a,c,'rad');
+
+lmcosi_hydrostatic1 = xyz2plm(r_ell',6);
+
+C20_1 = lmcosi_hydrostatic1(4,3);
+C40_1 = lmcosi_hydrostatic1(11,3);
+C60_1 = lmcosi_hydrostatic1(22,3);
+
+% core
+
+[a,~,c] = fr2abc(cfg.r_mean-cfg.depths_rho,fh(2),0);
+r_ell = TriEllRadVec(fii/180*pi,lambdai/180*pi,a,a,c,'rad');
+
+lmcosi_cmb = xyz2plm(r_ell',6);
+
 for i=1:Nrand
     
-    lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L); 
-    lmcosi_cmb = PowerLawSH(r_mean-cfg.depths_rho,beta-2,intercept,L);
+    % non hydrostatic part
+    lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L);
     
-    % make lmcosi_cmb = [0 0 r_mean-cfg.depths_rho 0] to make a spherical
-    % core
-  
-    % make shape always oblate
-    lmcosi_shape(4,3) = -abs(lmcosi_shape(4,3));
-
-    % make core always oblate
-    lmcosi_cmb(4,3) = -abs(lmcosi_cmb(4,3));
-    
+    % add hydrostatic part
+    lmcosi_shape(4,3) = lmcosi_shape(4,3) + C20_1;
+    lmcosi_shape(11,3) = lmcosi_shape(11,3) + C40_1;
+    lmcosi_shape(22,3) = lmcosi_shape(22,3) + C60_1;
+        
     meshStruct_def_quad = GenerateQuadLayerMesh(...
         lmcosi_cmb,lmcosi_shape,layer_mat,nsq,nl);
     figure; hold on;
