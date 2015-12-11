@@ -15,7 +15,7 @@ layer_mat = cfg.mat_id;
 L = 80;
 
 nsq = 9*4;
-nl  = [7*4 4*4];
+nl  = [7*4 3*4];
 
 %% plume
 
