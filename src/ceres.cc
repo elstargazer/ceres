@@ -635,6 +635,7 @@ void StokesProblem<dim>::assemble_system() {
 	grav_parameters.push_back(system_parameters::rho[0]);
 	grav_parameters.push_back(system_parameters::rho[1]);
 
+	std::cout << "Body parameters are: " ;
 	for(int i=0; i<6; i++)
 		std::cout << grav_parameters[i] << " ";
 	std::cout << endl;
@@ -1356,7 +1357,7 @@ void StokesProblem<dim>::smooth_eta_field(std::vector<bool> failing_cells)
 						if(qq_distance < system_parameters::smoothing_radius)
 							nearby_etas_q.push_back(quad_viscosities[neighbor_indices[i]][j][dim]);
 					}
-				// Write smoothed viscosities to quadrature_points_history; simple boxcar function
+				// Write smoothed viscosities to quadrature_points_history; simple boxcar function is the smoothing kernel
 				double mean_eta = 0;
 				for(unsigned int l = 0; l<nearby_etas_q.size(); l++)
 				{
