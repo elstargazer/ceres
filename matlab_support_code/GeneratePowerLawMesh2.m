@@ -15,7 +15,9 @@ layer_mat = cfg.mat_id;
 L = 80;
 
 nsq = 9*4;
-nl  = [7*4 5*4];
+%nl  = [4*3 6*7];%232
+%nl  = [7*5 5*5];%117
+nl  = [7*7 5*3];%72
 
 %% plume
 
@@ -91,7 +93,9 @@ lmcosi_cmb = xyz2plm(r_ell',6);
 for i=1:Nrand
     
     % non hydrostatic part
-    lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L);
+    deformed_mesh_quad_filename = [path '/run119_117km_SPG/' name '_def_quad_' num2str(i) ext];
+    deformed_mesh_info_filename = [path '/run119_117km_SPG/' name '_def_quad_' num2str(i) '.inf'];
+    lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L,deformed_mesh_info_filename);
     
     % add hydrostatic part
     lmcosi_shape(4,3) = lmcosi_shape(4,3) + C20_1;
@@ -118,8 +122,6 @@ for i=1:Nrand
 %         meshStruct_def_quad.cell_mat(ib) = plume_cell_mat(k);
 %         
 %     end
-    
-    deformed_mesh_quad_filename = [path '/' name '_def_quad_' num2str(i) ext];
     
     FillConfigTemplate(config_template_filename,deformed_mesh_quad_filename,num2str(i))
     Write_ucd(meshStruct_def_quad,deformed_mesh_quad_filename,cell_type)

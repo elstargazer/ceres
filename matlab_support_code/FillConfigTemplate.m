@@ -15,7 +15,7 @@ while (str~=-1)
     if strncmpi(str,key_mesh,numel(key_mesh))    
         fprintf(in_new,[key_mesh ' = "' mesh_filename(4:end) '";\n']);
     elseif strncmpi(str,key_out,numel(key_out))
-            fprintf(in_new,[key_out ' = "output/output_' append '/";\n']);
+            fprintf(in_new,[key_out ' = "output/119/output_' append '/";\n']);
             mkdir(['../output/output_' append])
 
     else
