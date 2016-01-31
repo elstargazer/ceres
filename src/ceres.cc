@@ -1145,6 +1145,10 @@ void StokesProblem<dim>::solution_stesses() {
 			current_cell_viscosity = local_viscosity;
 			cell_viscosities.push_back(current_cell_viscosity);
 		}
+		else
+		{
+			current_cell_viscosity = cell_viscosities[i];
+		}
 
 		//find local pressure
 		double cell_p = vector_values[i].operator()(2);
@@ -1221,6 +1225,7 @@ void StokesProblem<dim>::solution_stesses() {
 					double temp_reductionfactor = 1;
 					if(sigma3 < -114037)
 					{
+						//std::cout << " ext ";
 						failing_cells.push_back(true);
 						temp_reductionfactor = 10;
 						reduction_factor.push_back(temp_reductionfactor);
@@ -1237,6 +1242,7 @@ void StokesProblem<dim>::solution_stesses() {
 						double yield_sigma1 = sigma3 + std::sqrt( (3.086 * sigma_c * sigma3) + (0.002 * sigma3 * sigma3) );
 						if (sigma1 >= yield_sigma1)
 						{
+							//std::cout << " comp ";
 							failing_cells.push_back(true);
 							temp_reductionfactor = 1.0 * sigma1 / 5 / sigma3;
 
@@ -1267,7 +1273,7 @@ void StokesProblem<dim>::solution_stesses() {
 
 	// If there are enough failed cells, update eta at all quadrature points and perform smoothing
 	std::cout << "   Number of failing cells: " << total_fails << "\n";
-	if (total_fails <= 60)
+	if (total_fails <= 70)
 	{
 		system_parameters::continue_plastic_iterations = false;
 		for(unsigned int j=0; j < triangulation.n_active_cells(); j++)
