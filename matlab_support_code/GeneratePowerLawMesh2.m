@@ -1,4 +1,4 @@
-function GeneratePowerLawMesh2(Files,cfg, Nrand)
+function GeneratePowerLawMesh2(Files,cfg, Nrand, runname)
 
 
 matlab_config_filename = Files.matlab_config_filename;
@@ -28,6 +28,8 @@ nl  = [7*5 5*5];%117
 % plume_cell_mat = [2];
 % [xp,~,zp] = sph2cart(0,plume_lat/180*pi,plume_r);
 
+%% Run list file
+in_runlist = fopen(['../' runname '_runlist'],'w');
 %% Read configuration file
 
 in = fopen(matlab_config_filename);
@@ -74,7 +76,6 @@ cell_type = 'quad';
 % core
 [a2,~,c2] = fr2abc(r_mean-cfg.depths_rho,fh(2),0);
 
-
 fi = (-90:1:90);
 lambda = (-180:1:180);
 [fii,lambdai] = meshgrid(fi,lambda);
@@ -84,7 +85,6 @@ r2_ell = TriEllRadVec(fii/180*pi,lambdai/180*pi,a2,a2,c2,'rad');
 
 lmcosi_hydrostatic1 = xyz2plm(r1_ell',6);
 lmcosi_hydrostatic2 = xyz2plm(r2_ell',6);
-
 
 C20_1 = lmcosi_hydrostatic1(4,3);
 C40_1 = lmcosi_hydrostatic1(11,3);
@@ -96,13 +96,15 @@ C60_2 = lmcosi_hydrostatic2(22,3);
 
 
 %% beta and intercept for the core
-beta2 = -3;
-intercept2 = 8;
+beta2 = -4;
+intercept2 = 7;
+
+mkdir([path '/' runname '/']);
 
 for i=1:Nrand
     
-    deformed_mesh_quad_filename = [path '/run115/' name '_def_quad_' num2str(i) ext];
-    deformed_mesh_info_filename = [path '/run115/' name '_def_quad_' num2str(i) '.inf'];
+    deformed_mesh_quad_filename = [path '/' runname '/' name '_def_quad_' num2str(i) ext];
+    deformed_mesh_info_filename = [path '/' runname '/' name '_def_quad_' num2str(i) '.inf'];
    
     % non hydrostatic part
     lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L,deformed_mesh_info_filename);
@@ -139,9 +141,13 @@ for i=1:Nrand
 %         
 %     end
     
-    FillConfigTemplate(config_template_filename,deformed_mesh_quad_filename,num2str(i))
+    new_complete_path = FillConfigTemplate(config_template_filename,deformed_mesh_quad_filename,...
+        num2str(i),runname);
     Write_ucd(meshStruct_def_quad,deformed_mesh_quad_filename,cell_type)
-    
+ 
+    fprintf(in_runlist,[new_complete_path(4:end) '\n']);
 end
+
+fclose(in_runlist);
 
 
