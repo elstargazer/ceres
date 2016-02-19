@@ -171,7 +171,7 @@ private:
 
 	QGauss<dim> quadrature_formula;
 	std::vector< std::vector <Vector<double> > > quad_viscosities; // Indices for this object are [cell][q][q coords, eta]
-	std::vector<double> cell_viscosities;
+	std::vector<double> cell_viscosities; // This vector is only used for output, not FE computations
 	std::vector<PointHistory<dim> > quadrature_point_history;
 
 	ConstraintMatrix constraints;
@@ -535,6 +535,22 @@ double Rheology<dim>::get_eta(double &r, double &z)
 			// This is the true viscosity given the thermal profile
 			double true_eta = viscosity_function[n_minus_one + 1] * std::pow(visc_base, visc_exponent);
 
+			// Implement latitude-dependence viscosity
+			if(system_parameters::lat_dependence)
+			{
+				double lat = 180 / PI * std::atan(z / r);
+				if(lat > 80)
+					lat = 80;
+				double T_eq = 155;
+				double T_surf = T_eq * std::sqrt( std::sqrt( std::cos( PI / 180 * lat ) ) );
+				double taper_depth = 40000;
+				double surface_taper = (taper_depth - local_depth) / taper_depth;
+				if(surface_taper < 0)
+					surface_taper = 0;
+				double log_eta_contrast = surface_taper * system_parameters::eta_Ea * 52.5365 * (T_eq - T_surf) / T_eq / T_surf;
+				true_eta *= std::pow(10, log_eta_contrast);
+			}
+
 			if(true_eta > system_parameters::eta_ceiling)
 				return system_parameters::eta_ceiling;
 			else
@@ -634,6 +650,11 @@ void StokesProblem<dim>::assemble_system() {
 	grav_parameters.push_back(system_parameters::p_axes[system_parameters::present_timestep * 2 + 1]);
 	grav_parameters.push_back(system_parameters::rho[0]);
 	grav_parameters.push_back(system_parameters::rho[1]);
+
+	std::cout << "Body parameters are: " ;
+	for(int i=0; i<6; i++)
+		std::cout << grav_parameters[i] << " ";
+	std::cout << endl;
 
 	aGrav->setup_vars(grav_parameters);
 
@@ -814,7 +835,7 @@ void StokesProblem<dim>::assemble_system() {
 					local_viscosity = local_quadrature_points_history[q].first_eta;
 				}
 				else
-					local_viscosity = new_viscosities[q][0];
+					local_viscosity = local_quadrature_points_history[q].new_eta;
 
 				// Define the local viscoelastic constants
 				double local_eta_ve = 2
@@ -904,7 +925,6 @@ void StokesProblem<dim>::assemble_system() {
 			typename InnerPreconditioner<dim>::type::AdditionalData());
 
 	delete aGrav;
-
 }
 
 //====================== SOLVER ======================
@@ -1110,7 +1130,8 @@ void StokesProblem<dim>::solution_stesses() {
 	//tracks where failure occurred
 	std::vector<double> reduction_factor;
 	unsigned int total_fails = 0;
-	cell_viscosities.resize(0);
+	if (plastic_iteration == 0)
+		cell_viscosities.resize(0);
 	//loop across all the cells to find and adjust eta of failing cells
 	for (unsigned int i = 0; i < triangulation.n_active_cells(); i++)
 	{
@@ -1127,7 +1148,6 @@ void StokesProblem<dim>::solution_stesses() {
 		else
 		{
 			current_cell_viscosity = cell_viscosities[i];
-			cell_viscosities.push_back(current_cell_viscosity);
 		}
 
 		//find local pressure
@@ -1173,27 +1193,78 @@ void StokesProblem<dim>::solution_stesses() {
 		double cell_effective_viscosity = 0;
 		if (system_parameters::plasticity_on)
 		{
-			if (sigma1 >= 5 * sigma3) // this guarantees that viscosities only go down, never up
-				{
-				failing_cells.push_back(true);
-				double temp_reductionfactor = 1;
-				if (sigma3 < 0)
-					temp_reductionfactor = 100;
+			if(system_parameters::failure_criterion == 0) //Apply Byerlee's rule
+			{
+				if (sigma1 >= 5 * sigma3) // this guarantees that viscosities only go down, never up
+					{
+					failing_cells.push_back(true);
+					double temp_reductionfactor = 1;
+					if (sigma3 < 0)
+						temp_reductionfactor = 100;
+					else
+						temp_reductionfactor = 1.5 * sigma1 / 5 / sigma3;
+
+					reduction_factor.push_back(temp_reductionfactor);
+					total_fails++;
+
+					// Text file of all failure locations
+					std::ofstream fout_failed_cells(failed_cells_output.str().c_str(), std::ios::app);
+					fout_failed_cells << points_list[i] << "\n";
+					fout_failed_cells.close();
+					}
 				else
-					temp_reductionfactor = 1.9 * sigma1 / 5 / sigma3;
-
-				reduction_factor.push_back(temp_reductionfactor);
-				total_fails++;
-
-				// Text file of all failure locations
-				std::ofstream fout_failed_cells(failed_cells_output.str().c_str(), std::ios::app);
-				fout_failed_cells << points_list[i] << "\n";
-				fout_failed_cells.close();
+				{
+					reduction_factor.push_back(1);
+					failing_cells.push_back(false);
 				}
+			}
 			else
 			{
-				reduction_factor.push_back(1);
-				failing_cells.push_back(false);
+				if(system_parameters::failure_criterion == 1) //Apply Schultz criterion for frozen sand, RMR=45
+				{
+					double temp_reductionfactor = 1;
+					if(sigma3 < -114037)
+					{
+						//std::cout << " ext ";
+						failing_cells.push_back(true);
+						temp_reductionfactor = 10;
+						reduction_factor.push_back(temp_reductionfactor);
+						total_fails++;
+
+						// Text file of all failure locations
+						std::ofstream fout_failed_cells(failed_cells_output.str().c_str(), std::ios::app);
+						fout_failed_cells << points_list[i] << "\n";
+						fout_failed_cells.close();
+					}
+					else
+					{
+						double sigma_c = 160e6; //Unconfined compressive strength
+						double yield_sigma1 = sigma3 + std::sqrt( (3.086 * sigma_c * sigma3) + (0.002 * sigma3 * sigma3) );
+						if (sigma1 >= yield_sigma1)
+						{
+							//std::cout << " comp ";
+							failing_cells.push_back(true);
+							temp_reductionfactor = 1.0 * sigma1 / 5 / sigma3;
+
+							reduction_factor.push_back(temp_reductionfactor);
+							total_fails++;
+
+							// Text file of all failure locations
+							std::ofstream fout_failed_cells(failed_cells_output.str().c_str(), std::ios::app);
+							fout_failed_cells << points_list[i] << "\n";
+							fout_failed_cells.close();
+						}
+						else
+						{
+							reduction_factor.push_back(1);
+							failing_cells.push_back(false);
+						}
+					}
+				}
+				else
+				{
+					std::cout << "Specified failure criterion not found\n";
+				}
 			}
 		}
 		else
@@ -1202,8 +1273,7 @@ void StokesProblem<dim>::solution_stesses() {
 
 	// If there are enough failed cells, update eta at all quadrature points and perform smoothing
 	std::cout << "   Number of failing cells: " << total_fails << "\n";
-	if (total_fails <= 20)
-//	if (total_fails <= 20 && plastic_iteration > 1) //DELETE AFTER TESTING
+	if (total_fails <= 70)
 	{
 		system_parameters::continue_plastic_iterations = false;
 		for(unsigned int j=0; j < triangulation.n_active_cells(); j++)
@@ -1254,7 +1324,7 @@ void StokesProblem<dim>::solution_stesses() {
 
 		// Writes to file the smoothed eta field (which is defined at each quadrature point) for each cell
 		cell_no = 0;
-		cell_viscosities.resize(triangulation.n_active_cells(), 0);
+//		cell_viscosities.resize(triangulation.n_active_cells(), 0);
 		for (typename DoFHandler<dim>::active_cell_iterator cell =
 			dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
 		{
@@ -1271,6 +1341,12 @@ void StokesProblem<dim>::solution_stesses() {
 				cell_viscosities[cell_no] /= cell_area;
 
 				// Writes to file
+				std::ofstream fout_vrnew(plastic_eta_output.str().c_str(), std::ios::app);
+				fout_vrnew << " " << cell_viscosities[cell_no] << "\n";
+				fout_vrnew.close();
+			}
+			else
+			{
 				std::ofstream fout_vrnew(plastic_eta_output.str().c_str(), std::ios::app);
 				fout_vrnew << " " << cell_viscosities[cell_no] << "\n";
 				fout_vrnew.close();
@@ -1352,7 +1428,7 @@ void StokesProblem<dim>::smooth_eta_field(std::vector<bool> failing_cells)
 						if(qq_distance < system_parameters::smoothing_radius)
 							nearby_etas_q.push_back(quad_viscosities[neighbor_indices[i]][j][dim]);
 					}
-				// Write smoothed viscosities to quadrature_points_history; simple boxcar function
+				// Write smoothed viscosities to quadrature_points_history; simple boxcar function is the smoothing kernel
 				double mean_eta = 0;
 				for(unsigned int l = 0; l<nearby_etas_q.size(); l++)
 				{
@@ -1525,9 +1601,13 @@ void StokesProblem<dim>::move_mesh() {
 						* system_parameters::current_time_interval;
 			}
 
+
+	std::ostringstream ellipses_filename;
+	ellipses_filename << system_parameters::output_folder << "/ellipse_fits.txt";
 	// Find ellipsoidal axes for all layers
 	std::vector<double> ellipse_axes(0);
 	// compute fit to boundary 0, 1, 2 ...
+	std::cout << endl;
 	for(unsigned int i = 0; i<system_parameters::sizeof_material_id;i++)
 	{
 		ellipsoid.compute_fit(ellipse_axes, system_parameters::material_id[i]);
@@ -1537,6 +1617,11 @@ void StokesProblem<dim>::move_mesh() {
 		std::cout << "a_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[0]
 				<< " " << " c_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[1] << std::endl;
 		ellipse_axes.clear();
+
+		std::ofstream fout_ellipses(ellipses_filename.str().c_str(), std::ios::app);
+		fout_ellipses << system_parameters::present_timestep << " a_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[0]
+						<< " " << " c_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[1] << endl;
+		fout_ellipses.close();
 	}
 	write_vertices(0);
 }
@@ -1603,6 +1688,7 @@ void StokesProblem<dim>::setup_initial_mesh() {
 	std::ofstream out_eps (initial_mesh_file.str().c_str());
 	GridOut grid_out;
 	grid_out.write_eps (triangulation, out_eps);
+	out_eps.close();
 
 // set boundary ids
 // boundary indicator 0 is outer free surface; 1, 2, 3 ... is boundary between layers, 99 is flat boundaries
@@ -1640,7 +1726,33 @@ void StokesProblem<dim>::setup_initial_mesh() {
 		}
 	}
 
+	std::ostringstream ellipses_filename;
+	ellipses_filename << system_parameters::output_folder << "/ellipse_fits.txt";
+	std::ofstream fout_ellipses(ellipses_filename.str().c_str());
+	fout_ellipses.close();
+
+	// Find ellipsoidal axes for all layers
+	std::vector<double> ellipse_axes(0);
+	// compute fit to boundary 0, 1, 2 ...
+	std::cout << endl;
+	for(unsigned int i = 0; i<system_parameters::sizeof_material_id;i++)
+	{
+		ellipsoid.compute_fit(ellipse_axes, system_parameters::material_id[i]);
+		system_parameters::q_axes.push_back(ellipse_axes[0]);
+		system_parameters::p_axes.push_back(ellipse_axes[1]);
+
+		std::cout << "a_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[0]
+				<< " " << " c_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[1] << std::endl;
+		ellipse_axes.clear();
+
+		std::ofstream fout_ellipses(ellipses_filename.str().c_str(), std::ios::app);
+		fout_ellipses << system_parameters::present_timestep << " a_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[0]
+						<< " " << " c_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[1] << endl;
+		fout_ellipses.close();
+	}
+
 	triangulation.refine_global(system_parameters::global_refinement);
+
 //
 ////refines region near r=0
 //	if (system_parameters::small_r_refinement != 0) {
@@ -1667,38 +1779,39 @@ void StokesProblem<dim>::setup_initial_mesh() {
 //		}
 //	}
 //
-////refines crustal region
-//	if (system_parameters::crustal_refinement != 0) {
-//		double a = system_parameters::q_axes[1];
-//		double b = system_parameters::p_axes[1];
-//
-//
-//		for (unsigned int step = 0;
-//				step < system_parameters::crustal_refinement; ++step) {
-//			//		std::cout << "iteration " << step + 1 << "\n";
-//			typename dealii::Triangulation<dim>::active_cell_iterator cell =
-//					triangulation.begin_active(), endc = triangulation.end();
-//			for (; cell != endc; ++cell)
-//				for (unsigned int v = 0;
-//						v < GeometryInfo<dim>::vertices_per_cell; ++v) {
-//					Point<dim> current_vertex = cell->vertex(v);
-//
-//					const double x_coord = current_vertex.operator()(0);
-//					const double y_coord = current_vertex.operator()(1);
-//					double expected_z = -1;
-//
-//					if ((x_coord - a) < -1e-10)
-//						expected_z = b
-//								* std::sqrt(1 - (x_coord * x_coord / a / a));
-//
-//					if (y_coord >= expected_z) {
-//						cell->set_refine_flag();
-//						break;
-//					}
-//				}
-//			triangulation.execute_coarsening_and_refinement();
-//		}
-//	}
+
+//refines crustal region
+	if (system_parameters::crustal_refinement != 0) {
+		double a = system_parameters::q_axes[0] - system_parameters::crust_refine_region;
+		double b = system_parameters::p_axes[0] - system_parameters::crust_refine_region;
+
+
+		for (unsigned int step = 0;
+				step < system_parameters::crustal_refinement; ++step) {
+			typename dealii::Triangulation<dim>::active_cell_iterator cell =
+					triangulation.begin_active(), endc = triangulation.end();
+			for (; cell != endc; ++cell)
+				for (unsigned int v = 0;
+						v < GeometryInfo<dim>::vertices_per_cell; ++v) {
+					Point<dim> current_vertex = cell->vertex(v);
+
+					const double x_coord = current_vertex.operator()(0);
+					const double y_coord = current_vertex.operator()(1);
+					double expected_z = -1;
+
+					if ((x_coord - a) < -1e-10)
+						expected_z = b
+								* std::sqrt(1 - (x_coord * x_coord / a / a));
+
+					if (y_coord >= expected_z) {
+						cell->set_refine_flag();
+						break;
+					}
+				}
+			triangulation.execute_coarsening_and_refinement();
+		}
+	}
+
 //
 //	//refines surface region
 //	if (system_parameters::surface_refinement != 0) {
@@ -1724,20 +1837,13 @@ void StokesProblem<dim>::setup_initial_mesh() {
 //		}
 //	}
 
-	// Find ellipsoidal axes for all layers
-	std::vector<double> ellipse_axes(0);
-	// compute fit to boundary 0, 1, 2 ...
-	std::cout << endl;
-	for(unsigned int i = 0; i<system_parameters::sizeof_material_id;i++)
-	{
-		ellipsoid.compute_fit(ellipse_axes, system_parameters::material_id[i]);
-		system_parameters::q_axes.push_back(ellipse_axes[0]);
-		system_parameters::p_axes.push_back(ellipse_axes[1]);
-
-		std::cout << "a_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[0]
-				<< " " << " c_"<< system_parameters::material_id[i] <<" = " << ellipse_axes[1] << std::endl;
-		ellipse_axes.clear();
-	}
+	// output initial mesh in eps
+	std::ostringstream refined_mesh_file;
+	refined_mesh_file << system_parameters::output_folder << "/refined_mesh.eps";
+	std::ofstream out_eps_refined (refined_mesh_file.str().c_str());
+	GridOut grid_out_refined;
+	grid_out_refined.write_eps (triangulation, out_eps_refined);
+	out_eps_refined.close();
 	write_vertices(0);
 	write_mesh();
 }
@@ -1869,7 +1975,6 @@ void StokesProblem<dim>::do_flow_step() {
 template<int dim>
 void StokesProblem<dim>::run()
 {
-
 	// Sets up mesh and applies elastic displacement
 	setup_initial_mesh();
 	setup_quadrature_point_history();
