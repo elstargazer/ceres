@@ -99,12 +99,14 @@ C60_2 = lmcosi_hydrostatic2(22,3);
 beta2 = -3;
 intercept2 = 8;
 
-
 for i=1:Nrand
     
+    deformed_mesh_quad_filename = [path '/run115/' name '_def_quad_' num2str(i) ext];
+    deformed_mesh_info_filename = [path '/run115/' name '_def_quad_' num2str(i) '.inf'];
+   
     % non hydrostatic part
-    lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L);
-    lmcosi_cmb   = PowerLawSH(r_mean-cfg.depths_rho,beta2,intercept2,L);
+    lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L,deformed_mesh_info_filename);
+    lmcosi_cmb   = PowerLawSH(r_mean-cfg.depths_rho,beta2,intercept2,L,deformed_mesh_info_filename);
     
     % add hydrostatic part
     lmcosi_shape(4,3) = lmcosi_shape(4,3) + C20_1;
@@ -114,12 +116,10 @@ for i=1:Nrand
     lmcosi_cmb(4,3) = lmcosi_cmb(4,3) + C20_2;
     lmcosi_cmb(11,3) = lmcosi_cmb(11,3) + C40_2;
     lmcosi_cmb(22,3) = lmcosi_cmb(22,3) + C60_2;
-    deformed_mesh_quad_filename = [path '/run119_117km_SPG/' name '_def_quad_' num2str(i) ext];
-    deformed_mesh_info_filename = [path '/run119_117km_SPG/' name '_def_quad_' num2str(i) '.inf'];
-    lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L,deformed_mesh_info_filename);
-         
+             
     meshStruct_def_quad = GenerateQuadLayerMesh(...
         lmcosi_cmb,lmcosi_shape,layer_mat,nsq,nl);
+    
     figure; hold on;
     plot(meshStruct_def_quad.V(:,1),meshStruct_def_quad.V(:,2),'.');
     
