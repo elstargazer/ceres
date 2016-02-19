@@ -15,8 +15,10 @@ layer_mat = cfg.mat_id;
 L = 80;
 
 nsq = 9*4;
-nl  = [7*4 4*4];
 
+%nl  = [4*3 6*7];%232
+nl  = [7*5 5*5];%117
+%nl  = [7*7 5*3];%72
 %% plume
 
 % plume_size = [100000];
@@ -67,6 +69,7 @@ cell_type = 'quad';
     cfg.rho(2),0.1, 0.1);
 
 % outer shape
+
 [a1,~,c1] = fr2abc(cfg.r_mean,fh(1),0);
 % core
 [a2,~,c2] = fr2abc(r_mean-cfg.depths_rho,fh(2),0);
@@ -82,6 +85,7 @@ r2_ell = TriEllRadVec(fii/180*pi,lambdai/180*pi,a2,a2,c2,'rad');
 lmcosi_hydrostatic1 = xyz2plm(r1_ell',6);
 lmcosi_hydrostatic2 = xyz2plm(r2_ell',6);
 
+
 C20_1 = lmcosi_hydrostatic1(4,3);
 C40_1 = lmcosi_hydrostatic1(11,3);
 C60_1 = lmcosi_hydrostatic1(22,3);
@@ -95,11 +99,12 @@ C60_2 = lmcosi_hydrostatic2(22,3);
 beta2 = -3;
 intercept2 = 8;
 
+
 for i=1:Nrand
     
     % non hydrostatic part
     lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L);
-    lmcosi_cmb   = PowerLawSH(r_mean-cfg.depths_rho,beta2,intercept2,L)
+    lmcosi_cmb   = PowerLawSH(r_mean-cfg.depths_rho,beta2,intercept2,L);
     
     % add hydrostatic part
     lmcosi_shape(4,3) = lmcosi_shape(4,3) + C20_1;
@@ -109,7 +114,10 @@ for i=1:Nrand
     lmcosi_cmb(4,3) = lmcosi_cmb(4,3) + C20_2;
     lmcosi_cmb(11,3) = lmcosi_cmb(11,3) + C40_2;
     lmcosi_cmb(22,3) = lmcosi_cmb(22,3) + C60_2;
-        
+    deformed_mesh_quad_filename = [path '/run119_117km_SPG/' name '_def_quad_' num2str(i) ext];
+    deformed_mesh_info_filename = [path '/run119_117km_SPG/' name '_def_quad_' num2str(i) '.inf'];
+    lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L,deformed_mesh_info_filename);
+         
     meshStruct_def_quad = GenerateQuadLayerMesh(...
         lmcosi_cmb,lmcosi_shape,layer_mat,nsq,nl);
     figure; hold on;
@@ -130,8 +138,6 @@ for i=1:Nrand
 %         meshStruct_def_quad.cell_mat(ib) = plume_cell_mat(k);
 %         
 %     end
-    
-    deformed_mesh_quad_filename = [path '/' name '_def_quad_' num2str(i) ext];
     
     FillConfigTemplate(config_template_filename,deformed_mesh_quad_filename,num2str(i))
     Write_ucd(meshStruct_def_quad,deformed_mesh_quad_filename,cell_type)
