@@ -1,17 +1,18 @@
 ccc
 
 runname = 'run102';
-runlist_filename = '/Users/antonermakov/Dawn/FE/run115_runlist';
-
+runlist_filename = '/Users/antonermakov/Dawn/FE/run102_runlist';
 in_runlist = fopen(runlist_filename,'r');
 
+L = 80;
 
-for i=1:1:nfolders
-    
-    config_filename = fgetl(in_runlist);
+config_filename = 'tmp';
+
+while (config_filename ~= -1)    
+    config_filename = fgetl(in_runlist)
     
     % read config file
-    Files.config_template_filename = config_filename;
+    Files.config_template_filename = ['../' config_filename];
     cfg = ReadConfig(Files);
      
     %     filename_surf = getAllFiles(folder_path,'_surface');
@@ -42,13 +43,22 @@ for i=1:1:nfolders
     C60_1 = lmcosi_hydrostatic1(22,3);
     
     
+    %% read time data
+    
+    phys_times_data = load([['../' cfg.output_folder] 'physical_times.txt']);
+    t = phys_times_data(:,2);
+    
     %% Compute and write spectral power density
     
-    fileID = fopen(output_filename, 'w');
-    fclose(fileID);
-    
+   filename_surf = getAllFiles(['../' cfg.output_folder],'_surface');
+  
     try
         for i=1:numel(filename_surf)
+            
+            [path,name,ext] = fileparts(filename_surf{i});
+ 
+            output_spectrum_filename = ['../' cfg.output_folder strrep(name,...
+                'surface', 'spectrum.txt')] 
             
             lmcosi_limb = quad2plm(filename_surf{i},L);
             
@@ -63,13 +73,12 @@ for i=1:1:nfolders
             
             [sdl_limb,l_limb] = plm2spec(lmcosi_limb);
             
-            fileID = fopen(output_filename, 'a');
-            formatSpec = '%2.8f ';
-            fprintf(fileID, formatSpec, t(i));
-            fprintf(fileID, formatSpec, sdl_limb(3:2:end)/1e6);
+            in_spec = fopen(output_spectrum_filename, 'w');
+         
+            fprintf(in_spec, '%2.8f\n', t(i));
+            fprintf(in_spec, '%4i %2.8E\n', [l_limb sdl_limb/1e6]');
             
-            fclose(fileID);
-            
+            fclose(in_spec);        
         end
     end
 end
