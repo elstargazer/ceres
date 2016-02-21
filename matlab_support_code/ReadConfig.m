@@ -15,6 +15,8 @@ key_depths_rho = 'depths_rho';
 key_rho = 'rho';
 key_mat_id = 'material_id';
 
+key_output = 'output_folder';
+
 
 max_elems = 10;
 
@@ -56,6 +58,13 @@ while (str~=-1)
     elseif strncmpi(str,key_mat_id,numel(key_mat_id))
         
         config.mat_id = sscanf(str,['%*s = [' repmat('%d, ',[1 max_elems]) '%f];']);
+        
+                
+    elseif strncmpi(str,key_output,numel(key_mat_id))
+        
+        textline = sscanf(str,'%*s = %s;');
+        subchunk = regexp(textline, '(?<=")[^"]+(?=")', 'match');
+        config.output_folder = subchunk{1};
         
         
     else
