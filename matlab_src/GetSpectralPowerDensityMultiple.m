@@ -1,20 +1,23 @@
 ccc
 
-runname = 'run102';
-runlist_filename = '/Users/antonermakov/Dawn/FE/run102_runlist';
+runname = 'run115';
+runlist_filename = '/Users/antonermakov/Dawn/FE/run115_runlist';
 in_runlist = fopen(runlist_filename,'r');
+output_general_folder = '../output/';
 
 L = 80;
 
-config_filename = 'tmp';
+config_filename = fgetl(in_runlist)
 
-while (config_filename ~= -1)    
-    config_filename = fgetl(in_runlist)
+all_spectra_folder = [output_general_folder runname '/spectra'];
+mkdir(all_spectra_folder);
+
+while (config_filename ~= -1)
     
     % read config file
     Files.config_template_filename = ['../' config_filename];
     cfg = ReadConfig(Files);
-     
+    
     %     filename_surf = getAllFiles(folder_path,'_surface');
     %     filename_mesh = getAllFiles(folder_path,'_mesh');
     %
@@ -45,20 +48,23 @@ while (config_filename ~= -1)
     
     %% read time data
     
-    phys_times_data = load([['../' cfg.output_folder] 'physical_times.txt']);
+    phys_times_data = load(['../' cfg.output_folder 'physical_times.txt']);
     t = phys_times_data(:,2);
     
     %% Compute and write spectral power density
     
-   filename_surf = getAllFiles(['../' cfg.output_folder],'_surface');
-  
+    spectra_folder = [all_spectra_folder cfg.output_folder(end-9:end)];
+    mkdir(spectra_folder);
+    
+    filename_surf = getAllFiles(['../' cfg.output_folder],'_surface');
+    
     try
         for i=1:numel(filename_surf)
             
             [path,name,ext] = fileparts(filename_surf{i});
- 
+            
             output_spectrum_filename = ['../' cfg.output_folder strrep(name,...
-                'surface', 'spectrum.txt')] 
+                'surface', 'spectrum.txt')]
             
             lmcosi_limb = quad2plm(filename_surf{i},L);
             
@@ -73,14 +79,30 @@ while (config_filename ~= -1)
             
             [sdl_limb,l_limb] = plm2spec(lmcosi_limb);
             
+            % record spectra in output default folder
             in_spec = fopen(output_spectrum_filename, 'w');
-         
-            fprintf(in_spec, '%2.8f\n', t(i));
+            
+            fprintf(in_spec, '%2.8E\n', t(i));
             fprintf(in_spec, '%4i %2.8E\n', [l_limb sdl_limb/1e6]');
             
-            fclose(in_spec);        
+            fclose(in_spec);
+            
+             % record spectra in special folder
+            output_spectrum_filename_2 = [spectra_folder strrep(name,...
+                'surface', 'spectrum.txt')];
+            
+            in_spec = fopen(output_spectrum_filename_2, 'w');
+            
+            fprintf(in_spec, '%2.8E\n', t(i));
+            fprintf(in_spec, '%4i %2.8E\n', [l_limb sdl_limb/1e6]');
+            
+            fclose(in_spec);
+
         end
     end
+    
+    config_filename = fgetl(in_runlist)
+    
 end
 
 fclose(in_runlist);
