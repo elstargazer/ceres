@@ -12,6 +12,8 @@ config_filename = fgetl(in_runlist)
 all_spectra_folder = [output_general_folder runname '/spectra'];
 mkdir(all_spectra_folder);
 
+output_number = 1;
+
 while (config_filename ~= -1)
     
     % read config file
@@ -53,7 +55,7 @@ while (config_filename ~= -1)
     
     %% Compute and write spectral power density
     
-    spectra_folder = [all_spectra_folder cfg.output_folder(end-9:end)];
+    spectra_folder = [all_spectra_folder '/output_' num2str(output_number)];
     mkdir(spectra_folder);
     
     filename_surf = getAllFiles(['../' cfg.output_folder],'_surface');
@@ -88,7 +90,7 @@ while (config_filename ~= -1)
             fclose(in_spec);
             
              % record spectra in special folder
-            output_spectrum_filename_2 = [spectra_folder strrep(name,...
+            output_spectrum_filename_2 = [spectra_folder '/' strrep(name,...
                 'surface', 'spectrum.txt')];
             
             in_spec = fopen(output_spectrum_filename_2, 'w');
@@ -102,6 +104,7 @@ while (config_filename ~= -1)
     end
     
     config_filename = fgetl(in_runlist)
+    output_number = output_number + 1;
     
 end
 
