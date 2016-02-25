@@ -1,11 +1,11 @@
 ccc
 
-runname = 'run115';
-runlist_filename = '/Users/antonermakov/Dawn/FE/run115_runlist';
+runname = 'run102';
+runlist_filename = '/Users/antonermakov/Dawn/FE/run102_runlist';
 in_runlist = fopen(runlist_filename,'r');
 output_general_folder = '../output/';
 
-L = 80;
+L = 100;
 
 config_filename = fgetl(in_runlist)
 
@@ -60,8 +60,13 @@ while (config_filename ~= -1)
     
     filename_surf = getAllFiles(['../' cfg.output_folder],'_surface');
     
+%     figure; hold on;
+%     set(gca,'XScale','log');
+%     set(gca,'YScale','log');
+%     box on;
+    
     try
-        for i=1:numel(filename_surf)
+        parfor i=1:numel(filename_surf)
             
             [path,name,ext] = fileparts(filename_surf{i});
             
@@ -99,6 +104,9 @@ while (config_filename ~= -1)
             fprintf(in_spec, '%4i %2.8E\n', [l_limb sdl_limb/1e6]');
             
             fclose(in_spec);
+            
+%             plot(l_limb(1:2:end),sdl_limb(1:2:end),'-k');
+%             drawnow;
 
         end
     end
@@ -110,6 +118,8 @@ end
 
 fclose(in_runlist);
 close all
+
+
 
 
 
