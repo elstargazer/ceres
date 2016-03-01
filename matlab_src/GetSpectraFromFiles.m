@@ -10,8 +10,8 @@ fig_folder='~/Dawn/Figures/';
 
 %%
 
-spectra_folder = '~/Dawn/FE/output/run102_analytic/spectra/';
-key_for_spectra = 'My';
+spectra_folder = '~/Dawn/FE/output/run102_nosign/spectra/';
+key_for_spectra = 'spectrum';
 
 all_content = dir(spectra_folder);
 dirFlags = [all_content.isdir];
@@ -60,10 +60,11 @@ end
 
 
 %% find relaxation times
-% figure;
+figure; hold on;
+set(gca,'YScale','log');
 
 % degrees to fit
-l_for_fit = 2:2:84;
+l_for_fit = 2:2:100;
 for i = 1:numel(l_for_fit)
     
     ind = find(l==l_for_fit(i));
@@ -93,12 +94,14 @@ for i = 1:numel(l_for_fit)
     tau_down(i) = -1/coeffs_confint(1,1);
     tau_up(i)   = -1/coeffs_confint(2,1);
     
-    %     plot(fit_obj,t_select,sdl_select);
-    %     waitforbuttonpress();
+    plot(t_select,sdl_select,'.k');
+    plot(t_select,exp(polyval([a b],t_select)),'.r');
+    
+    waitforbuttonpress();
     
 end
 
-% figure;
+figure;
 set(gcf, 'Units','centimeters', 'Position',im_size)
 set(gcf, 'PaperPositionMode','auto')
 set(gca, 'FontSize',fntsize);
