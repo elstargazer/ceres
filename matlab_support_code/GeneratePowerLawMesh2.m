@@ -1,6 +1,5 @@
 function GeneratePowerLawMesh2(Files,cfg, Nrand, runname)
 
-
 matlab_config_filename = Files.matlab_config_filename;
 config_template_filename = Files.config_template_filename;
 config_list_filename = Files.config_list_filename;
@@ -8,17 +7,23 @@ config_list_filename = Files.config_list_filename;
 %% Input paramters
 
 r_mean    = cfg.r_mean;
+r2        = r_mean - cfg.depths_rho;
+
 beta      = cfg.beta;
 intercept = cfg.intercept;
 layer_mat = cfg.mat_id;
 
-L = 80;
+cell_h = 3000; % layer height in m
 
-nsq = 9*4;
+L = 100; % spherical harmonic degree
+nsq = 50; % number of point on the side of the cube
 
-%nl  = [4*3 6*7];%232
-nl  = [7*5 5*5];%117
-%nl  = [7*7 5*3];%72
+cube_size = r2/2; % cube side in m 
+cube_rad  = sqrt(2)*cube_size; % circumscribed radius of a cube
+layer_h = r2 - cube_rad; % height of layer above the cube
+
+nl  = [fix(layer_h/cell_h) fix((r_mean-r2)/cell_h)];
+
 %% plume
 
 % plume_size = [100000];
@@ -71,7 +76,6 @@ cell_type = 'quad';
     cfg.rho(2),0.1, 0.1);
 
 % outer shape
-
 [a1,~,c1] = fr2abc(cfg.r_mean,fh(1),0);
 % core
 [a2,~,c2] = fr2abc(r_mean-cfg.depths_rho,fh(2),0);
@@ -96,8 +100,8 @@ C60_2 = lmcosi_hydrostatic2(22,3);
 
 
 %% beta and intercept for the core
-beta2 = -4;
-intercept2 = 7;
+beta2 = -99;
+intercept2 = -99;
 
 mkdir([path '/' runname '/']);
 
@@ -120,7 +124,7 @@ for i=1:Nrand
     lmcosi_cmb(22,3) = lmcosi_cmb(22,3) + C60_2;
              
     meshStruct_def_quad = GenerateQuadLayerMesh(...
-        lmcosi_cmb,lmcosi_shape,layer_mat,nsq,nl);
+        lmcosi_cmb,lmcosi_shape,layer_mat,nsq,nl,cube_size);
     
     figure; hold on;
     plot(meshStruct_def_quad.V(:,1),meshStruct_def_quad.V(:,2),'.');
