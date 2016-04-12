@@ -17,11 +17,19 @@ cell_h = 3000; % layer height in m
 
 L = 100; % spherical harmonic degree
 nsq = 50; % number of point on the side of the cube
+<<<<<<< HEAD
 
 cube_size = r2/2; % cube side in m 
 cube_rad  = sqrt(2)*cube_size; % circumscribed radius of a cube
 layer_h = r2 - cube_rad; % height of layer above the cube
 
+=======
+
+cube_size = r2/2; % cube side in m 
+cube_rad  = sqrt(2)*cube_size; % circumscribed radius of a cube
+layer_h = r2 - cube_rad; % height of layer above the cube
+
+>>>>>>> 6dded38c58b1f2dc95ed44edc34d35c2dac28025
 nl  = [fix(layer_h/cell_h) fix((r_mean-r2)/cell_h)];
 
 %% plume

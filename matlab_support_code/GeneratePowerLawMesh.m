@@ -10,8 +10,8 @@ config_list_filename = Files.config_list_filename;
 L = 50;
 
 % core axes
-a_core = 420000;
-c_core = 405000;
+a_core = 410000;
+c_core = 410000;
 
 %% Read configuration file
 

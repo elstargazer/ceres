@@ -1,4 +1,4 @@
-ccc
+% ccc
 SECSINYEAR = 365.2422*86400;
 
 %% plotting settings
@@ -10,15 +10,16 @@ fig_folder='~/Dawn/Figures/';
 
 %%
 
-spectra_folder = '~/Dawn/FE/output/run102/spectra/';
+spectra_folder = '~/Dawn/FE/output/run102_nosign/spectra/';
+key_for_spectra = 'spectrum';
 
 all_content = dir(spectra_folder);
 dirFlags = [all_content.isdir];
 subFolders = all_content(dirFlags);
 
-figure; hold on;
-set(gca,'XScale','log');
-set(gca,'YScale','log');
+% figure; hold on;
+% set(gca,'XScale','log');
+% set(gca,'YScale','log');
 
 t_all = [];
 sdl_all = [];
@@ -26,7 +27,7 @@ sdl_all = [];
 for i=3:numel(subFolders);
     
     pathname = [spectra_folder subFolders(i).name '/'];
-    filename_quad = getAllFiles(pathname,'spectrum');
+    filename_quad = getAllFiles(pathname,key_for_spectra);
     
     for j=1:numel(filename_quad)
         
@@ -39,41 +40,39 @@ for i=3:numel(subFolders);
         data = textscan(in,'%d %f\n');
         l = data{1};
         sdl = data{2};
-        
         sdl_all = [sdl_all sdl];
         
-        plot(l(1:2:end),sdl(1:2:end),'-k');
+        %         plot(l(1:2:end),sdl(1:2:end),'-k');
         fclose(in);
-        
     end
 end
 
-%%
+%% Plot coefficient for a specific degree
 
 
-l_to_plot = 20;
-
-ind = find(l==l_to_plot);
-figure; hold on;
-% set(gca,'XScale','log');
-set(gca,'YScale','log');
-plot(t_all,sdl_all(ind,:),'.k')
+% l_to_plot = 4;
+%
+% ind = find(l==l_to_plot);
+% figure; hold on;
+% % set(gca,'XScale','log');
+% set(gca,'YScale','log');
+% plot(t_all,sdl_all(ind,:),'.k')
 
 
 %% find relaxation times
-
-
-figure;
+figure; hold on;
+set(gca,'YScale','log');
 
 % degrees to fit
 l_for_fit = 2:2:100;
 for i = 1:numel(l_for_fit)
     
-    %fit 1
     ind = find(l==l_for_fit(i));
-    [p,S] = polyfit(t_all,log(sdl_all(ind,:)),1);
-    tau(i) = -1/p(1);
-    
+
+    %fit 1
+    %     [p,S] = polyfit(t_all,log(sdl_all(ind,:)),1);
+    %     tau(i) = -1/p(1);
+     
     % fit 2
     %     fitOpt = fitoptions('Normalize','off');
     %     [fit_obj,gof,output] = fit(t_all',log(sdl_all(ind,:))','poly1',fitOpt);
@@ -84,19 +83,21 @@ for i = 1:numel(l_for_fit)
     t_select = t_all(cond);
     sdl_select = sdl_all(ind,cond);
     
-    [fit_obj,gof,output] = fit(t_select',sdl_select','exp1');
+    [fit_obj,gof,output] = fit(t_select',log(sdl_select)','poly1');
     
     coeffs = coeffvalues(fit_obj);
     coeffs_confint = confint(fit_obj);
     a = coeffs(1);
     b = coeffs(2);
     
-    tau2(i) = -1/b;
-    tau2_down(i) = -1/coeffs_confint(1,2);
-    tau2_up(i)   = -1/coeffs_confint(2,2);
-       
-%     plot(fit_obj,t_select,sdl_select)   
-%     waitforbuttonpress();
+    tau(i) = -1/a;
+    tau_down(i) = -1/coeffs_confint(1,1);
+    tau_up(i)   = -1/coeffs_confint(2,1);
+    
+    plot(t_select,sdl_select,'.k');
+    plot(t_select,exp(polyval([a b],t_select)),'.r');
+    
+    waitforbuttonpress();
     
 end
 
@@ -105,13 +106,16 @@ set(gcf, 'Units','centimeters', 'Position',im_size)
 set(gcf, 'PaperPositionMode','auto')
 set(gca, 'FontSize',fntsize);
 hold on;box on;grid on;
+set(gca,'YScale','log');
+set(gca,'XScale','log');
 
-plot(l_for_fit,tau/SECSINYEAR,'-ok','MarkerSize',3,'LineWidth',3)
-% plot(l_for_fit,tau2/SECSINYEAR,'-or','MarkerSize',3,'LineWidth',3)
-% errorbar(l_for_fit,tau2/SECSINYEAR,...
-%     tau2_down/SECSINYEAR,tau2_up/SECSINYEAR);
+color = 'y';
 
-xlabel('Degree','FontSize',fntsize);
+plot(l_for_fit,tau/SECSINYEAR,'-o','MarkerSize',5,'LineWidth',3,'Color',color);
+plot(l_for_fit,tau_down/SECSINYEAR,'-','MarkerSize',3,'LineWidth',1,'Color',color);
+plot(l_for_fit,tau_up/SECSINYEAR,'-','MarkerSize',3,'LineWidth',1,'Color',color);
+
+xlabel('SH degree','FontSize',fntsize);
 ylabel('Relaxation time [y]','FontSize',fntsize);
 
 
