@@ -9,7 +9,7 @@ Files.matlab_config_filename   = matlab_config_filename;
 Files.config_template_filename = config_template_filename;
 Files.config_list_filename     = config_list_filename;
 
-Nmeshes   = 3; % number of meshes to be generated
+Nmeshes   = 24; % number of meshes to be generated
 
 % Ceres topography spectrum power law parameters
 
