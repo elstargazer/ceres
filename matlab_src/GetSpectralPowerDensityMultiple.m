@@ -6,8 +6,8 @@ G  = 6.67e-11;
 Rref = 470000;
 M = GM/G;
 
-runname = 'Vary_Core_209km';
-runlist_filename = '/Users/antonermakov/Dawn/FE/Vary_Core_209km_runlist';
+runname = 'Vary_core_g10_37km';
+runlist_filename = '/Users/antonermakov/Dawn/FE/Vary_core_g10_37km_runlist';
 in_runlist = fopen(runlist_filename,'r');
 output_general_folder = '../output/';
 
@@ -15,12 +15,12 @@ L = 100;
  
 config_filename = fgetl(in_runlist)
 
-all_spectra_folder = [output_general_folder runname '/spectra'];
+all_spectra_folder = [output_general_folder runname '/spectra_' runname ];
 mkdir(all_spectra_folder);
 
 output_number = 1;
 
-figure; hold on;
+% figure; hold on;
 
 while (config_filename ~= -1)
     
@@ -90,7 +90,6 @@ while (config_filename ~= -1)
     J2=-((ell1(:,2).*ell1(:,2)-ell1(:,1).*ell1(:,1)).*M1+...
         ((ell2(:,2).*ell2(:,2)-ell2(:,1).*ell2(:,1)).*M2))./(5*Rref*Rref.*M)/sqrt(5);
     
-    
     C1 = 0.4*ell1(:,1).^2.*M1;
     C2 = 0.4*ell2(:,1).^2.*M2;
     C = C1 + C2;
@@ -107,9 +106,8 @@ while (config_filename ~= -1)
 %    plot J2 and fp1
 %     plot(t,fp1(1:end-1)./fp1(1),'r'); 
 %     plot(t,J2(1:end-1)./J2(1),'b');
-    drawnow
-    
-    
+%     drawnow
+
     %% Compute and write spectral power density
     
     spectra_folder = [all_spectra_folder '/output_' num2str(output_number)];
