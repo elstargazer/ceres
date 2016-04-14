@@ -35,20 +35,16 @@ nl  = [fix(layer_h/cell_h) fix((r_mean-r2)/cell_h)];
 
 %% Run list file
 in_runlist = fopen(['../' runname '_runlist'],'w');
-%% Read configuration file
+
+%% Read matlab configuration
 
 in = fopen(matlab_config_filename);
 
-str = fscanf(in,'spherical_mesh_filename = %s\n',1);
-init_mesh_filename=str(2:end-2);
-str = fscanf(in,'shape_folder = %s\n',1);
-shape_folder = str(2:end-2);
-str = fscanf(in,'shape_filename = %s\n',1);
-shape_filename = str(2:end-2);
-str = fscanf(in,'figure_folder = %s\n',1);
+str = fscanf(in,'FE_folder = %s\n',1);
+FE_folder = str(2:end-2);
+
+str = fscanf(in,'figure_folder = %s',1);
 figure_folder = str(2:end-2);
-str = fscanf(in,'figure_spetrum_filename = %s',1);
-figure_spetrum_filename = str(2:end-2);
 
 fclose(in);
 
@@ -58,7 +54,9 @@ FigureSettings
 %% Initial parameters
 
 cell_type = 'quad';
-[path,name,ext] = fileparts(init_mesh_filename);
+meshes_path = ['meshes'];
+name = 'mesh_sph';
+ext = '.inp';
 
 %% Generate random power law spectrum
 
@@ -103,12 +101,12 @@ C60_2 = lmcosi_hydrostatic2(22,3);
 beta2 = -99;
 intercept2 = -99;
 
-mkdir([path '/' runname '/']);
+mkdir([meshes_path '/' runname '/']);
 
 for i=1:Nrand
     
-    deformed_mesh_quad_filename = [path '/' runname '/' name '_def_quad_' num2str(i) ext];
-    deformed_mesh_info_filename = [path '/' runname '/' name '_def_quad_' num2str(i) '.inf'];
+    deformed_mesh_quad_filename = [meshes_path '/' runname '/' name '_def_quad_' num2str(i) ext];
+    deformed_mesh_info_filename = [meshes_path '/' runname '/' name '_def_quad_' num2str(i) '.inf'];
    
     % non hydrostatic part
     lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L,deformed_mesh_info_filename);
@@ -153,5 +151,3 @@ for i=1:Nrand
 end
 
 fclose(in_runlist);
-
-
