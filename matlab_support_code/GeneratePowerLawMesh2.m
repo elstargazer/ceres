@@ -13,10 +13,10 @@ beta      = cfg.beta;
 intercept = cfg.intercept;
 layer_mat = cfg.mat_id;
 
-cell_h = 3000; % layer height in m
+cell_h = 10000; % layer height in m
 
 L = 100; % spherical harmonic degree
-nsq = 50; % number of point on the side of the cube
+nsq = 30; % number of point on the side of the cube
 
 cube_size = r2/2; % cube side in m 
 cube_rad  = sqrt(2)*cube_size; % circumscribed radius of a cube
@@ -101,7 +101,7 @@ C60_2 = lmcosi_hydrostatic2(22,3);
 beta2 = -99;
 intercept2 = -99;
 
-mkdir([meshes_path '/' runname '/']);
+mkdir([FE_folder meshes_path '/' runname '/']);
 
 for i=1:Nrand
     
@@ -145,7 +145,7 @@ for i=1:Nrand
     
     new_complete_path = FillConfigTemplate(config_template_filename,deformed_mesh_quad_filename,...
         num2str(i),runname);
-    Write_ucd(meshStruct_def_quad,deformed_mesh_quad_filename,cell_type)
+    Write_ucd(meshStruct_def_quad,[FE_folder deformed_mesh_quad_filename],cell_type)
  
     fprintf(in_runlist,[new_complete_path(4:end) '\n']);
 end
