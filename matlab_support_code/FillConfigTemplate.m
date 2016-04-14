@@ -11,12 +11,13 @@ in_new = fopen(new_complete_path,'w');
 str = fgetl(in_old);
 fprintf(in_new,'%s',str);
 
+key_mesh = 'mesh_filename';
+key_out  = 'output_folder';
+
 while (str~=-1)
     str = fgetl(in_old);
-    key_mesh = 'mesh_filename';
-    key_out  = 'output_folder';
     if strncmpi(str,key_mesh,numel(key_mesh))
-        fprintf(in_new,[key_mesh ' = "' mesh_filename(4:end) '";\n']);
+        fprintf(in_new,[key_mesh ' = "' mesh_filename(1:end) '";\n']);
     elseif strncmpi(str,key_out,numel(key_out))
         fprintf(in_new,[key_out ' = "output/' runname '/output_' append '/";\n']);
         mkdir(['../output/' runname '/output_' append])
