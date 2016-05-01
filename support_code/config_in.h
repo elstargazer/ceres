@@ -195,7 +195,7 @@ config_in::config_in(char* filename)
 	  }
 	  catch(const FileIOException &fioex)
 	  {
-	    std::cerr << "I/O error while reading file." << std::endl;
+	    std::cerr << "I/O error while reading file:" << filename << std::endl;
 	  }
 	  catch(const ParseException &pex)
 	  {
@@ -207,11 +207,17 @@ config_in::config_in(char* filename)
 	  try
 	  {
         string msh = cfg.lookup("mesh_filename");
-        string out = cfg.lookup("output_folder");
-
-        system_parameters::output_folder = out;
 	    system_parameters::mesh_filename = msh;
+	  }
+	  catch(const SettingNotFoundException &nfex)
+	  {
+	    cerr << "No 'mesh_filename' setting in configuration file." << endl;
+	  }
 
+	  // get output folder
+
+	  try
+	  {
         string output = cfg.lookup("output_folder");
 	    system_parameters::output_folder = output;
 
@@ -219,7 +225,7 @@ config_in::config_in(char* filename)
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
-	    cerr << "No 'mesh_filename' or 'output_folder' setting in configuration file." << endl;
+	    cerr << "No 'output_folder' setting in configuration file." << endl;
 	  }
 
 	  // get radii
