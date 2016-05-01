@@ -1273,7 +1273,7 @@ void StokesProblem<dim>::solution_stesses() {
 
 	// If there are enough failed cells, update eta at all quadrature points and perform smoothing
 	std::cout << "   Number of failing cells: " << total_fails << "\n";
-	if (total_fails <= 70)
+	if (total_fails <= 120)
 	{
 		system_parameters::continue_plastic_iterations = false;
 		for(unsigned int j=0; j < triangulation.n_active_cells(); j++)
@@ -1624,6 +1624,7 @@ void StokesProblem<dim>::move_mesh() {
 		fout_ellipses.close();
 	}
 	write_vertices(0);
+    write_vertices(1);
 }
 
 template<int dim>
@@ -1845,6 +1846,7 @@ void StokesProblem<dim>::setup_initial_mesh() {
 	grid_out_refined.write_eps (triangulation, out_eps_refined);
 	out_eps_refined.close();
 	write_vertices(0);
+	write_vertices(1);
 	write_mesh();
 }
 
@@ -1904,12 +1906,15 @@ void StokesProblem<dim>::do_elastic_steps()
 	{
 		std::ofstream fout_times(times_filename.str().c_str(), std::ios::app);
 		fout_times << system_parameters::present_timestep << " "
-									<< system_parameters::present_time/SECSINYEAR << " 0" << "\n";
+									<< system_parameters::present_time/SECSINYEAR << " 0 " 
+									<< system_parameters::q_axes[0] << " " << system_parameters::p_axes[0] << " "
+									<< system_parameters::q_axes[1] << " " << system_parameters::p_axes[1] << "\n";
 		fout_times.close();
 		std::cout << "\n\nElastic iteration " << elastic_iteration
 							<< "\n";
 		setup_dofs();
 		write_vertices(0);
+		write_vertices(1);
 		write_mesh();
 
 		if (system_parameters::present_timestep == 0)
@@ -1944,6 +1949,7 @@ void StokesProblem<dim>::do_flow_step() {
 			std::cout << "Plasticity iteration " << plastic_iteration << "\n";
 			setup_dofs();
 			write_vertices(0);
+			write_vertices(1);
 			write_mesh();
 
 			std::cout << "   Assembling..." << std::endl << std::flush;
@@ -1961,7 +1967,9 @@ void StokesProblem<dim>::do_flow_step() {
 				times_filename << system_parameters::output_folder << "/physical_times.txt";
 				std::ofstream fout_times(times_filename.str().c_str(), std::ios::app);
 				fout_times << system_parameters::present_timestep << " "
-							<< system_parameters::present_time/SECSINYEAR << " " <<  plastic_iteration << "\n";
+							<< system_parameters::present_time/SECSINYEAR << " " <<  plastic_iteration << " " 
+							<< system_parameters::q_axes[0] << " " << system_parameters::p_axes[0] << " "
+                            << system_parameters::q_axes[1] << " " << system_parameters::p_axes[1] << "\n";
 				fout_times.close();
 				break;
 			}
@@ -1978,11 +1986,6 @@ void StokesProblem<dim>::run()
 	// Sets up mesh and applies elastic displacement
 	setup_initial_mesh();
 	setup_quadrature_point_history();
-
-//	write_vertices(0);
-//	write_vertices(1);
-//	write_vertices(99);
-
 	do_elastic_steps();
 
 	// Computes viscous timesteps
@@ -2007,12 +2010,15 @@ void StokesProblem<dim>::run()
 
 	// Write the moved vertices time for the last viscous step
 	write_vertices(0);
+	write_vertices(1);
 	write_mesh();
 	std::ostringstream times_filename;
 	times_filename << system_parameters::output_folder << "/physical_times.txt";
 	std::ofstream fout_times(times_filename.str().c_str(), std::ios::app);
-	fout_times << system_parameters::present_timestep << " "
-					<< system_parameters::present_time/SECSINYEAR << " 0\n";
+	fout_times << system_parameters::present_timestep << " " 
+					<< system_parameters::present_time/SECSINYEAR << " 0 " 
+					<< system_parameters::q_axes[0] << " " << system_parameters::p_axes[0] << " "
+                    << system_parameters::q_axes[1] << " " << system_parameters::p_axes[1] << "\n";
 	fout_times.close();
  }
 
@@ -2025,7 +2031,7 @@ int main(int argc, char* argv[]) {
 	// output program name
 	std::cout << "Running: " << argv[0] << std::endl;
 
-	char* cfg_filename = new char[80];
+	char* cfg_filename = new char[120];
 
 	if (argc == 1) // if no input parameters (as if launched from eclipse)
 	{
