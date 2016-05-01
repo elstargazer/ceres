@@ -43,8 +43,23 @@ in = fopen(matlab_config_filename);
 str = fscanf(in,'FE_folder = %s\n',1);
 FE_folder = str(2:end-2);
 
-str = fscanf(in,'figure_folder = %s',1);
+str = fscanf(in,'output_folder = %s\n',1);
+output_folder = str(2:end-2);
+
+str = fscanf(in,'meshes_folder = %s\n',1);
+meshes_folder = str(2:end-2);
+
+str = fscanf(in,'config_folder = %s\n',1);
+config_folder = str(2:end-2);
+
+str = fscanf(in,'figure_folder = %s\n',1);
 figure_folder = str(2:end-2);
+
+folder_cfg.FE_folder = FE_folder;
+folder_cfg.output_folder = output_folder;
+folder_cfg.meshes_folder = meshes_folder;
+folder_cfg.config_folder = config_folder;
+folder_cfg.figure_folder = figure_folder;
 
 fclose(in);
 
@@ -101,7 +116,7 @@ C60_2 = lmcosi_hydrostatic2(22,3);
 beta2 = -99;
 intercept2 = -99;
 
-mkdir([meshes_path '/' runname '/']);
+mkdir([FE_folder meshes_path '/' runname '/']);
 
 for i=1:Nrand
     
@@ -145,7 +160,7 @@ for i=1:Nrand
     
     new_complete_path = FillConfigTemplate(config_template_filename,deformed_mesh_quad_filename,...
         num2str(i),runname);
-    Write_ucd(meshStruct_def_quad,deformed_mesh_quad_filename,cell_type)
+    Write_ucd(meshStruct_def_quad,[FE_folder deformed_mesh_quad_filename],cell_type)
  
     fprintf(in_runlist,[new_complete_path(4:end) '\n']);
 end
