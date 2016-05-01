@@ -22,9 +22,7 @@ while (str~=-1)
         fprintf(in_new,[key_out ' = "output/' runname '/output_' append '/";\n']);
         mkdir(['../output/' runname '/output_' append])
     else
-        fprintf(in_new,'%s\n',str);
-        
-        
+        fprintf(in_new,'%s\n',str); 
     end
 end
 

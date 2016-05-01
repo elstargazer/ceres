@@ -13,10 +13,10 @@ beta      = cfg.beta;
 intercept = cfg.intercept;
 layer_mat = cfg.mat_id;
 
-cell_h = 3000; % layer height in m
+cell_h = 10000; % layer height in m
 
 L = 100; % spherical harmonic degree
-nsq = 50; % number of point on the side of the cube
+nsq = 30; % number of point on the side of the cube
 
 cube_size = r2/2; % cube side in m 
 cube_rad  = sqrt(2)*cube_size; % circumscribed radius of a cube
