@@ -8,6 +8,7 @@ key_r_mean = 'r_mean';
 key_period = 'period';
 key_beta   = 'beta';
 key_intercept = 'intercept';
+spectrum_filename = 'spectrum_filename';
 
 key_depths_eta = 'depths_eta';
 key_eta_kinks = 'eta_kinks';
@@ -46,7 +47,7 @@ while (str~=-1)
     elseif strncmpi(str,key_eta_kinks,numel(key_eta_kinks))
         
         config.eta_kinks = sscanf(str,['%*s = [' repmat('%E,',[1 max_elems]) '%E];']);
-    
+        
     elseif strncmpi(str,key_depths_rho,numel(key_depths_rho))
         
         config.depths_rho = sscanf(str,['%*s = [' repmat('%f, ',[1 max_elems]) ' %f];']);
@@ -59,7 +60,11 @@ while (str~=-1)
         
         config.mat_id = sscanf(str,['%*s = [' repmat('%d, ',[1 max_elems]) '%f];']);
         
-                
+    elseif strncmpi(str,spectrum_filename,numel(spectrum_filename))
+        
+        config.spectrum_filename = sscanf(str,'%*s = "%s"');
+        config.spectrum_filename = config.spectrum_filename(1:end-1);
+              
     elseif strncmpi(str,key_output,numel(key_mat_id))
         
         textline = sscanf(str,'%*s = %s;');
