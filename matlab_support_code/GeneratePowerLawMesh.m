@@ -7,11 +7,11 @@ config_list_filename = Files.config_list_filename;
 
 %% Input paramters
 
-L = 50;
+L = 100;
 
 % core axes
-a_core = 420000;
-c_core = 405000;
+a_core = 410000;
+c_core = 410000;
 
 %% Read configuration file
 
@@ -51,6 +51,8 @@ lmcosi_shape = CreateEmptylmcosi(L);
 lmcosi_shape(1,3) = r_mean;
 lmcosi_shape(2,3:4) = 0;
 lmcosi_shape(3,3:4) = 0;
+
+progressbar(0);
 
 for i=1:Nrand
     
@@ -122,6 +124,8 @@ for i=1:Nrand
     Write_ucd(meshStruct_def_quad,deformed_mesh_quad_filename,cell_type)
     Write_ucd(meshStruct_def,deformed_mesh_filename,cell_type)
     
+    progressbar(i/Nrand);
+    
 end
 
-
+progressbar(1);

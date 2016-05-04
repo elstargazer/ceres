@@ -21,8 +21,6 @@ SH::SH(void)
 	}
 }
 
-
-
 SH::SH(double RefRadi, double Ri, double nmax, double GM)
 {
 
