@@ -4,38 +4,6 @@ matlab_config_filename = Files.matlab_config_filename;
 config_template_filename = Files.config_template_filename;
 config_list_filename = Files.config_list_filename;
 
-%% Input paramters
-
-r_mean    = cfg.r_mean;
-r2        = r_mean - cfg.depths_rho;
-
-beta      = cfg.beta;
-intercept = cfg.intercept;
-layer_mat = cfg.mat_id;
-
-cell_h = 10000; % layer height in m
-
-L = 100; % spherical harmonic degree
-nsq = 30; % number of point on the side of the cube
-
-cube_size = r2/2; % cube side in m 
-cube_rad  = sqrt(2)*cube_size; % circumscribed radius of a cube
-layer_h = r2 - cube_rad; % height of layer above the cube
-
-nl  = [fix(layer_h/cell_h) fix((r_mean-r2)/cell_h)];
-
-%% plume
-
-% plume_size = [100000];
-% plume_r    = [0];
-% plume_lat    = [20];
-% plume_rho    = [500];
-% plume_cell_mat = [2];
-% [xp,~,zp] = sph2cart(0,plume_lat/180*pi,plume_r);
-
-%% Run list file
-in_runlist = fopen(['../' runname '_runlist'],'w');
-
 %% Read matlab configuration
 
 in = fopen(matlab_config_filename);
@@ -62,6 +30,47 @@ folder_cfg.config_folder = config_folder;
 folder_cfg.figure_folder = figure_folder;
 
 fclose(in);
+
+%% Input paramters
+
+r_mean    = cfg.r_mean;
+r2        = r_mean - cfg.depths_rho;
+
+if isfield(cfg,'spectrum_filename')
+    spectrum_filename = cfg.spectrum_filename;
+    spectrum_filename = [FE_folder spectrum_filename];
+    spectrum_given = true;
+    
+else
+    beta      = cfg.beta;
+    intercept = cfg.intercept;  
+     spectrum_given = false;
+end
+
+layer_mat = cfg.mat_id;   
+
+cell_h = 3000; % layer height in m
+
+L = 100; % spherical harmonic degree
+nsq = 50; % number of point on the side of the cube
+
+cube_size = r2/2; % cube side in m 
+cube_rad  = sqrt(2)*cube_size; % circumscribed radius of a cube
+layer_h = r2 - cube_rad; % height of layer above the cube
+
+nl  = [fix(layer_h/cell_h) fix((r_mean-r2)/cell_h)];
+
+%% plume
+
+% plume_size = [100000];
+% plume_r    = [0];
+% plume_lat    = [20];
+% plume_rho    = [500];
+% plume_cell_mat = [2];
+% [xp,~,zp] = sph2cart(0,plume_lat/180*pi,plume_r);
+
+%% Run list file
+in_runlist = fopen(['../' runname '_runlist'],'w');
 
 %% plotting settings
 FigureSettings
@@ -124,7 +133,11 @@ for i=1:Nrand
     deformed_mesh_info_filename = [meshes_path '/' runname '/' name '_def_quad_' num2str(i) '.inf'];
    
     % non hydrostatic part
-    lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L,deformed_mesh_info_filename);
+    if spectrum_given
+        lmcosi_shape = PowerLawSH(r_mean,spectrum_filename,L,deformed_mesh_info_filename);
+    else    
+        lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L,deformed_mesh_info_filename);
+    end
     lmcosi_cmb   = PowerLawSH(r_mean-cfg.depths_rho,beta2,intercept2,L,deformed_mesh_info_filename);
     
     % add hydrostatic part
