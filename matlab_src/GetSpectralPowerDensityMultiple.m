@@ -6,7 +6,7 @@ G  = 6.67e-11;
 Rref = 470000;
 M = GM/G;
 
-runname = 'Vary_core_g10_37km';
+runname = 'Vary_core_g10_55km';
 runlist_filename = '/Users/antonermakov/Dawn/FE/Vary_core_g10_37km_runlist';
 in_runlist = fopen(runlist_filename,'r');
 output_general_folder = '../output/';
