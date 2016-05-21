@@ -6,10 +6,10 @@ G  = 6.67e-11;
 Rref = 470000;
 M = GM/G;
 
-runname = 'Vary_grad_g25_48km_may4'; %mod this line to reflect the set of runs being computed
+runname = 'Vary_grad_g25_48km_may16_schultz'; %mod this line to reflect the set of runs being computed
 runs_root_folder = '/Users/rogerfu/Dropbox/ceres_dropbox/ceres_public/';
 %runlist_filename file must be in the runs_root_folder
-runlist_filename = [runs_root_folder 'RunList_Vary_grad_g25_48km_may4.txt']; %mod this line for the runlist .txt file
+runlist_filename = [runs_root_folder 'RunList_Vary_grad_g25_48km_may16_schultz.txt']; %mod this line for the runlist .txt file
 in_runlist = fopen(runlist_filename,'r');
 output_general_folder = [runs_root_folder 'output/'];
 
@@ -57,7 +57,7 @@ while (config_filename ~= -1)
     
     lmcosi_hydrostatic1 = xyz2plm(r_ell',6);
     
-    C20_1 = lmcosi_hydrostatic1(4,3)
+    C20_1 = lmcosi_hydrostatic1(4,3);
     C40_1 = lmcosi_hydrostatic1(11,3);
     C60_1 = lmcosi_hydrostatic1(22,3);
     

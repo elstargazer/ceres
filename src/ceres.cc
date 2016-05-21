@@ -1574,7 +1574,7 @@ void StokesProblem<dim>::update_time_interval()
 			}
 		}
 	}
-
+	std:: cout << "Breaker " << max_velocity;
 	// NOTE: It is possible for this time interval to be very different from that used in the viscoelasticity calculation.
 	system_parameters::current_time_interval = move_goal_per_step / max_velocity;
 	double step_time_yr = system_parameters::current_time_interval / SECSINYEAR;
@@ -1944,7 +1944,6 @@ void StokesProblem<dim>::do_elastic_steps()
 		elastic_iteration++;
 		system_parameters::present_timestep++;
 		system_parameters::present_time = system_parameters::present_time + system_parameters::current_time_interval;
-		append_physical_times(0);
 		move_mesh();
 		do_ellipse_fits();
 		write_vertices(0);
@@ -2004,17 +2003,17 @@ void StokesProblem<dim>::run()
 	while (system_parameters::present_timestep
 			< (system_parameters::initial_elastic_iterations
 					+ system_parameters::total_viscous_steps)) {
+						
 		if (system_parameters::continue_plastic_iterations == false)
 			system_parameters::continue_plastic_iterations = true;
 		std::cout << "\n\nViscoelastoplastic iteration " << VEPstep << "\n\n";
-
 		// Computes plasticity
 		do_flow_step();
 		update_quadrature_point_history();
 		update_time_interval();
+		append_physical_times(plastic_iteration);
 		system_parameters::present_timestep++;
 		system_parameters::present_time = system_parameters::present_time + system_parameters::current_time_interval;
-		append_physical_times(plastic_iteration);
 		move_mesh();
 		do_ellipse_fits();
 		write_vertices(0);
@@ -2022,19 +2021,7 @@ void StokesProblem<dim>::run()
 		write_mesh();
 		VEPstep++;
 	}
-
-	// // Write the moved vertices time for the last viscous step
-	// write_vertices(0);
-	// write_vertices(1);
-	// write_mesh();
-	// std::ostringstream times_filename;
-	// times_filename << system_parameters::output_folder << "/physical_times.txt";
-	// std::ofstream fout_times(times_filename.str().c_str(), std::ios::app);
-	// fout_times << system_parameters::present_timestep << " "
-	// 				<< system_parameters::present_time/SECSINYEAR << " 0 "
-	// 				<< system_parameters::q_axes[0] << " " << system_parameters::p_axes[0] << " "
-	//                     << system_parameters::q_axes[1] << " " << system_parameters::p_axes[1] << "\n";
-	// fout_times.close();
+		append_physical_times(0);
  }
 
 }
