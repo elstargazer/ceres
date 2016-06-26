@@ -684,6 +684,12 @@ void StokesProblem<dim>::assemble_system() {
 		Assert(
 				local_quadrature_points_history < &quadrature_point_history.back(),
 				ExcInternalError());
+		
+		double cell_area = cell->measure();
+		AssertThrow(cell_area > 0
+			,
+		  ExcInternalError());
+
 
 		unsigned int m_id = cell->material_id();
 

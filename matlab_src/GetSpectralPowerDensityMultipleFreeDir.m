@@ -6,12 +6,12 @@ G  = 6.67e-11;
 Rref = 470000;
 M = GM/G;
 
-runname = 'Vary_grad_g25_48km_may16_schultz'; %mod this line to reflect the set of runs being computed
+runname = 'benchmark_g30'; %mod this line to reflect the set of runs being computed
 runs_root_folder = '/Users/rogerfu/Dropbox/ceres_dropbox/ceres_public/';
 %runlist_filename file must be in the runs_root_folder
-runlist_filename = [runs_root_folder 'RunList_Vary_grad_g25_48km_may16_schultz.txt']; %mod this line for the runlist .txt file
+runlist_filename = [runs_root_folder 'RunList_benchmark_g30.txt']; %mod this line for the runlist .txt file
 in_runlist = fopen(runlist_filename,'r');
-output_general_folder = [runs_root_folder 'output/'];
+output_general_folder = [runs_root_folder 'surface_outputs/'];
 
 L = 100;
  
@@ -69,42 +69,41 @@ while (config_filename ~= -1)
     
     
     %% compute J2 and fp1
-
-    ellipse_fits_file = [output_general_folder runname '/output_' num2string(output_number,'%iu') '/ellipse_fits.txt'];
-    
-    in_ell = fopen(ellipse_fits_file,'r');
-    ell_data = textscan(in_ell,'%d a_%d = %d  c_%d = %d\n');
-    fclose(in_ell);
-
-    t_ind = ell_data{1}+1;
-    a_ind = ell_data{2}+1;
-    
-    clear ell1 ell2
-
-    ell1(:,1) = double(ell_data{3}(a_ind == 1));
-    ell1(:,2) = double(ell_data{5}(a_ind == 1));
-    
-    ell2(:,1) = double(ell_data{3}(a_ind == 2));
-    ell2(:,2) = double(ell_data{5}(a_ind == 2));
-    
-    fp1 = (ell1(:,1)-ell1(:,2))./ell1(:,1);
-    
-    J2=-((ell1(:,2).*ell1(:,2)-ell1(:,1).*ell1(:,1)).*M1+...
-        ((ell2(:,2).*ell2(:,2)-ell2(:,1).*ell2(:,1)).*M2))./(5*Rref*Rref.*M)/sqrt(5);
-    
-    C1 = 0.4*ell1(:,1).^2.*M1;
-    C2 = 0.4*ell2(:,1).^2.*M2;
-    C = C1 + C2;
-    
-    NMOI = C./(M.*Rref^2);
-    
-    omega_init = 2*pi/(cfg.T*3600);
-    
-    L_init = C(1)*(omega_init);
-    
-    omega = omega_init * C(1)./C;
-    Ti = 2*pi./omega/3600;
-    
+%     ellipse_fits_file = [output_general_folder runname '/output_' num2string(output_number,'%iu') '/ellipse_fits.txt'];
+%     
+%     in_ell = fopen(ellipse_fits_file,'r');
+%     ell_data = textscan(in_ell,'%d a_%d = %d  c_%d = %d\n');
+%     fclose(in_ell);
+% 
+%     t_ind = ell_data{1}+1;
+%     a_ind = ell_data{2}+1;
+%     
+%     clear ell1 ell2
+% 
+%     ell1(:,1) = double(ell_data{3}(a_ind == 1));
+%     ell1(:,2) = double(ell_data{5}(a_ind == 1));
+%     
+%     ell2(:,1) = double(ell_data{3}(a_ind == 2));
+%     ell2(:,2) = double(ell_data{5}(a_ind == 2));
+%     
+%     fp1 = (ell1(:,1)-ell1(:,2))./ell1(:,1);
+%     
+%     J2=-((ell1(:,2).*ell1(:,2)-ell1(:,1).*ell1(:,1)).*M1+...
+%         ((ell2(:,2).*ell2(:,2)-ell2(:,1).*ell2(:,1)).*M2))./(5*Rref*Rref.*M)/sqrt(5);
+%     
+%     C1 = 0.4*ell1(:,1).^2.*M1;
+%     C2 = 0.4*ell2(:,1).^2.*M2;
+%     C = C1 + C2;
+%     
+%     NMOI = C./(M.*Rref^2);
+%     
+%     omega_init = 2*pi/(cfg.T*3600);
+%     
+%     L_init = C(1)*(omega_init);
+%     
+%     omega = omega_init * C(1)./C;
+%     Ti = 2*pi./omega/3600;
+  
 %    plot J2 and fp1
 %     plot(t,fp1(1:end-1)./fp1(1),'r'); 
 %     plot(t,J2(1:end-1)./J2(1),'b');
