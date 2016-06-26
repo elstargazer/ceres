@@ -6,17 +6,17 @@ G  = 6.67e-11;
 Rref = 470000;
 M = GM/G;
 
-runname = 'Vary_core_g10_55km';
-runlist_filename = '/Users/antonermakov/Dawn/FE/Vary_core_g10_37km_runlist';
+runname = 'may16';
+runlist_filename = '/Users/antonermakov/Dawn/FE/may16_runlist';
 in_runlist = fopen(runlist_filename,'r');
-output_general_folder = '../output/';
+% output_general_folder = '../output/';
 
 L = 100;
  
-config_filename = fgetl(in_runlist)
+config_filename = fgetl(in_runlist);
 
-all_spectra_folder = [output_general_folder runname '/spectra_' runname ];
-mkdir(all_spectra_folder);
+% all_spectra_folder = [output_general_folder runname '/spectra_' runname ];
+% mkdir(all_spectra_folder);
 
 output_number = 1;
 
@@ -27,7 +27,7 @@ while (config_filename ~= -1)
     % read config file
     Files.config_template_filename = ['../' config_filename];
     cfg = ReadConfig(Files);
-    
+   
     %     filename_surf = getAllFiles(folder_path,'_surface');
     %     filename_mesh = getAllFiles(folder_path,'_mesh');
     %
@@ -59,12 +59,10 @@ while (config_filename ~= -1)
     C40_1 = lmcosi_hydrostatic1(11,3);
     C60_1 = lmcosi_hydrostatic1(22,3);
     
-    
     %% read time data
     
     phys_times_data = load(['../' cfg.output_folder 'physical_times.txt']);
     t = phys_times_data(:,2);
-    
     
     %% compute J2 and fp1
 
@@ -110,8 +108,8 @@ while (config_filename ~= -1)
 
     %% Compute and write spectral power density
     
-    spectra_folder = [all_spectra_folder '/output_' num2str(output_number)];
-    mkdir(spectra_folder);
+%     spectra_folder = [all_spectra_folder '/output_' num2str(output_number)];
+%     mkdir(spectra_folder);
     
     filename_surf = getAllFiles(['../' cfg.output_folder],'00_surface');
     
@@ -121,7 +119,7 @@ while (config_filename ~= -1)
 %     box on;
     
      
-        for i=1:numel(filename_surf)
+        parfor i=1:numel(filename_surf)
             
              try
             
@@ -166,13 +164,13 @@ while (config_filename ~= -1)
             fclose(in_spec);
             
              %% record topography spectra in special folder
-            output_spectrum_filename_topo = [spectra_folder '/' strrep(name,...
-                'surface', 'spectrum_topo.txt')];
-            
-            in_spec = fopen(output_spectrum_filename_topo, 'w');
-            fprintf(in_spec, '%2.8E\n', t(i));
-            fprintf(in_spec, '%4i %2.8E\n', [l_limb sdl_limb/1e6]');
-            fclose(in_spec);
+%             output_spectrum_filename_topo = [spectra_folder '/' strrep(name,...
+%                 'surface', 'spectrum_topo.txt')];
+%             
+%             in_spec = fopen(output_spectrum_filename_topo, 'w');
+%             fprintf(in_spec, '%2.8E\n', t(i));
+%             fprintf(in_spec, '%4i %2.8E\n', [l_limb sdl_limb/1e6]');
+%             fclose(in_spec);
             
             %% record gravity spectra in special folder          
 %             output_spectrum_filename_grav = [spectra_folder '/' strrep(name,...
