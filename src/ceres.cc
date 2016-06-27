@@ -686,6 +686,8 @@ void StokesProblem<dim>::assemble_system() {
 				ExcInternalError());
 		
 		double cell_area = cell->measure();
+		if(cell_area<0)
+			append_physical_times(-1);
 		AssertThrow(cell_area > 0
 			,
 		  ExcInternalError());
@@ -2027,7 +2029,7 @@ void StokesProblem<dim>::run()
 		write_mesh();
 		VEPstep++;
 	}
-		append_physical_times(0);
+		append_physical_times(-1);
  }
 
 }
