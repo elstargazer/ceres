@@ -1283,7 +1283,7 @@ void StokesProblem<dim>::solution_stesses() {
 
 	// If there are enough failed cells, update eta at all quadrature points and perform smoothing
 	std::cout << "   Number of failing cells: " << total_fails << "\n";
-	if (total_fails <= 120)
+	if (total_fails <= 80)
 	{
 		system_parameters::continue_plastic_iterations = false;
 		for(unsigned int j=0; j < triangulation.n_active_cells(); j++)
@@ -1537,10 +1537,14 @@ void StokesProblem<dim>::update_quadrature_point_history() {
 template<int dim>
 void StokesProblem<dim>::update_time_interval()
 {
-	double move_goal_per_step = system_parameters::initial_disp_target -
+	double move_goal_per_step = system_parameters::initial_disp_target;
+	if(system_parameters::present_timestep > system_parameters::initial_elastic_iterations)
+	{
+		move_goal_per_step = system_parameters::initial_disp_target -
 			((system_parameters::initial_disp_target - system_parameters::final_disp_target) /
-					system_parameters::total_viscous_steps *
-					(system_parameters::present_timestep - system_parameters::initial_elastic_iterations));
+			system_parameters::total_viscous_steps *
+			(system_parameters::present_timestep - system_parameters::initial_elastic_iterations));
+	}
 
 	double zero_tolerance = 1e-3;
 	double max_velocity = 0;
@@ -1582,7 +1586,6 @@ void StokesProblem<dim>::update_time_interval()
 			}
 		}
 	}
-	std:: cout << "Breaker " << max_velocity;
 	// NOTE: It is possible for this time interval to be very different from that used in the viscoelasticity calculation.
 	system_parameters::current_time_interval = move_goal_per_step / max_velocity;
 	double step_time_yr = system_parameters::current_time_interval / SECSINYEAR;
@@ -1606,7 +1609,6 @@ void StokesProblem<dim>::move_mesh() {
 				for (unsigned int d = 0; d < dim; ++d)
 					vertex_displacement[d] = solution(
 							cell->vertex_dof_index(v, d));
-
 				cell->vertex(v) += vertex_displacement
 						* system_parameters::current_time_interval;
 			}
@@ -1935,8 +1937,9 @@ void StokesProblem<dim>::do_elastic_steps()
 
 		if (system_parameters::present_timestep == 0)
 			initialize_eta_and_G();
-
-		system_parameters::current_time_interval =
+		
+		if(elastic_iteration == 0)
+			system_parameters::current_time_interval =
 				system_parameters::elastic_time; //This is the time interval needed in assembling the problem
 
 		std::cout << "   Assembling..." << std::endl << std::flush;
@@ -1949,14 +1952,16 @@ void StokesProblem<dim>::do_elastic_steps()
 		update_quadrature_point_history();
 
 	//				std::cout << std::endl << "\a";
+		append_physical_times(0);
 		elastic_iteration++;
 		system_parameters::present_timestep++;
-		system_parameters::present_time = system_parameters::present_time + system_parameters::current_time_interval;
-		move_mesh();
+//		system_parameters::present_time = system_parameters::present_time + system_parameters::current_time_interval;
+//		move_mesh();
 		do_ellipse_fits();
 		write_vertices(0);
 	  write_vertices(1);
 		write_mesh();
+		update_time_interval();
 	}
 }
 
@@ -2000,13 +2005,12 @@ void StokesProblem<dim>::run()
 	times_filename << system_parameters::output_folder << "/physical_times.txt";
 	std::ofstream fout_times(times_filename.str().c_str());
 	fout_times.close();
-	append_physical_times(0);
 	
 	// Computes elastic timesteps
 	do_elastic_steps();
 
 	// Computes viscous timesteps
-	system_parameters::current_time_interval = system_parameters::viscous_time;
+//	system_parameters::current_time_interval = system_parameters::viscous_time;
 	unsigned int VEPstep = 0;
 	while (system_parameters::present_timestep
 			< (system_parameters::initial_elastic_iterations
@@ -2018,11 +2022,11 @@ void StokesProblem<dim>::run()
 		// Computes plasticity
 		do_flow_step();
 		update_quadrature_point_history();
-		update_time_interval();
+		move_mesh();
+//		update_time_interval();
 		append_physical_times(plastic_iteration);
 		system_parameters::present_timestep++;
 		system_parameters::present_time = system_parameters::present_time + system_parameters::current_time_interval;
-		move_mesh();
 		do_ellipse_fits();
 		write_vertices(0);
 		write_vertices(1);
