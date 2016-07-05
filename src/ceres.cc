@@ -170,6 +170,7 @@ private:
 	DoFHandler<dim> dof_handler;
 	unsigned int n_u = 0, n_p = 0;
 	unsigned int plastic_iteration = 0;
+	unsigned int last_max_plasticity = 0;
 
 	QGauss<dim> quadrature_formula;
 	std::vector< std::vector <Vector<double> > > quad_viscosities; // Indices for this object are [cell][q][q coords, eta]
@@ -734,12 +735,18 @@ void StokesProblem<dim>::assemble_system() {
 			}
 
 			for (unsigned int q = 0; q < n_q_points; ++q) {
-				const SymmetricTensor<2, dim> &old_stress =
+				 SymmetricTensor<2, dim> &old_stress =
 						local_quadrature_points_history[q].old_stress;
 				double &local_old_phiphi_stress =
 						local_quadrature_points_history[q].old_phiphi_stress;
 				double r_value = fe_values.quadrature_point(q)[0];
 				double z_value = fe_values.quadrature_point(q)[1];
+				
+				// if(system_parameters::present_timestep == system_parameters::initial_elastic_iterations)
+				// {
+				// 	old_stress *= 0;
+				// 	local_old_phiphi_stress = 0;
+				// }
 
 				// get local density based on mat id
 				double local_density = system_parameters::rho[m_id];
@@ -848,7 +855,7 @@ void StokesProblem<dim>::assemble_system() {
 					local_viscosity = local_quadrature_points_history[q].new_eta;
 
 				// Define the local viscoelastic constants
-				double local_eta_ve = 2
+				double local_eta_ve = 1
 						/ ((1 / local_viscosity)
 								+ (1 / local_quadrature_points_history[q].G
 										/ system_parameters::current_time_interval));
@@ -1283,7 +1290,13 @@ void StokesProblem<dim>::solution_stesses() {
 
 	// If there are enough failed cells, update eta at all quadrature points and perform smoothing
 	std::cout << "   Number of failing cells: " << total_fails << "\n";
-	if (total_fails <= 80)
+	double last_max_plasticity_double = last_max_plasticity;
+	double total_fails_double = total_fails;
+	double decrease_in_plasticity = ((last_max_plasticity_double - total_fails_double) / last_max_plasticity_double);
+	if(plastic_iteration == 0)
+		decrease_in_plasticity = 1;
+	last_max_plasticity = total_fails;
+	if (total_fails <= 80 || decrease_in_plasticity <= 0.2)
 	{
 		system_parameters::continue_plastic_iterations = false;
 		for(unsigned int j=0; j < triangulation.n_active_cells(); j++)
@@ -1612,6 +1625,7 @@ void StokesProblem<dim>::move_mesh() {
 				cell->vertex(v) += vertex_displacement
 						* system_parameters::current_time_interval;
 			}
+			std::cout << system_parameters::current_time_interval << endl;
 }
 
 //====================== WRITE MESH TO FILE ======================
@@ -1940,7 +1954,7 @@ void StokesProblem<dim>::do_elastic_steps()
 		
 		if(elastic_iteration == 0)
 			system_parameters::current_time_interval =
-				system_parameters::elastic_time; //This is the time interval needed in assembling the problem
+				system_parameters::viscous_time; //This is the time interval needed in assembling the problem
 
 		std::cout << "   Assembling..." << std::endl << std::flush;
 		assemble_system();
@@ -1961,7 +1975,8 @@ void StokesProblem<dim>::do_elastic_steps()
 		write_vertices(0);
 	  write_vertices(1);
 		write_mesh();
-		update_time_interval();
+//		if(elastic_iteration < (system_parameters::initial_elastic_iterations))
+//			update_time_interval();
 	}
 }
 
@@ -2008,7 +2023,6 @@ void StokesProblem<dim>::run()
 	
 	// Computes elastic timesteps
 	do_elastic_steps();
-
 	// Computes viscous timesteps
 //	system_parameters::current_time_interval = system_parameters::viscous_time;
 	unsigned int VEPstep = 0;
