@@ -15,14 +15,17 @@ key_eta_kinks = 'eta_kinks';
 key_depths_rho = 'depths_rho';
 key_rho = 'rho';
 key_mat_id = 'material_id';
-
+key_cell_height = 'cell_height';
 key_output = 'output_folder';
 
 
 max_elems = 10;
 
+str = fgetl(in);
+
 while (str~=-1)
-    str = strtrim(fgetl(in));
+    
+    str = strtrim(str);
     
     if strncmpi(str,key_period,numel(key_period))
         
@@ -44,6 +47,10 @@ while (str~=-1)
         
         config.depths_eta = sscanf(str,['%*s = [' repmat('%f, ',[1 max_elems]) ' %f];']);
         
+    elseif strncmpi(str,key_cell_height,numel(key_cell_height))
+        
+        config.cell_height = sscanf(str,['%*s = [' repmat('%f, ',[1 max_elems]) ' %f];']);
+        
     elseif strncmpi(str,key_eta_kinks,numel(key_eta_kinks))
         
         config.eta_kinks = sscanf(str,['%*s = [' repmat('%E,',[1 max_elems]) '%E];']);
@@ -63,8 +70,8 @@ while (str~=-1)
     elseif strncmpi(str,spectrum_filename,numel(spectrum_filename))
         
         config.spectrum_filename = sscanf(str,'%*s = "%s"');
-        config.spectrum_filename = config.spectrum_filename(1:end-1);
-              
+        config.spectrum_filename = config.spectrum_filename(1:end-2);
+        
     elseif strncmpi(str,key_output,numel(key_mat_id))
         
         textline = sscanf(str,'%*s = %s;');
@@ -77,7 +84,12 @@ while (str~=-1)
         
         
     end
+    
+    str = fgetl(in);
+    
 end
+
+fclose(in);
 
 
 
