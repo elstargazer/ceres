@@ -23,6 +23,7 @@ namespace system_parameters {
 // Mesh file name
 string mesh_filename;
 string output_folder;
+string spectrum_filename;
 
 // Body parameters
 double r_mean;
@@ -117,6 +118,7 @@ void config_in::write_config()
     fout_config << "omegasquared = " << system_parameters::omegasquared << endl;
     fout_config << "beta = " << system_parameters::beta << endl;
     fout_config << "intercept = " << system_parameters::intercept << endl;
+    fout_config << "spectrum_filename = " << system_parameters::spectrum_filename << endl;
 
     // rheology parameters
 
@@ -241,8 +243,17 @@ config_in::config_in(char* filename)
 	    body_parameters.lookupValue("period", system_parameters::period);
 	    system_parameters::omegasquared = pow(TWOPI / 3600.0 / system_parameters::period, 2.0);
 	    body_parameters.lookupValue("r_mean", system_parameters::r_mean);
-	    body_parameters.lookupValue("beta", system_parameters::beta);
-	    body_parameters.lookupValue("intercept", system_parameters::intercept);
+
+	    string spc_filename;
+	    bool spectrum_given = body_parameters.lookupValue("spectrum_filename",spc_filename);
+
+	    if (spectrum_given)
+	        system_parameters::spectrum_filename = spc_filename;
+	    else
+	    { 
+	    	body_parameters.lookupValue("beta", system_parameters::beta);
+	        body_parameters.lookupValue("intercept", system_parameters::intercept);
+        }
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
