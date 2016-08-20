@@ -49,7 +49,8 @@ end
 
 layer_mat = cfg.mat_id;   
 
-cell_h = 3000; % layer height in m
+cell_h1 = cfg.cell_height(1); % layer height in m
+cell_h2 = cfg.cell_height(2); 
 
 L = 100; % spherical harmonic degree
 nsq = 50; % number of point on the side of the cube
@@ -58,7 +59,7 @@ cube_size = r2/2; % cube side in m
 cube_rad  = sqrt(2)*cube_size; % circumscribed radius of a cube
 layer_h = r2 - cube_rad; % height of layer above the cube
 
-nl  = [fix(layer_h/cell_h) fix((r_mean-r2)/cell_h)];
+nl  = [fix(layer_h/cell_h2) fix((r_mean-r2)/cell_h1)];
 
 %% plume
 
@@ -175,7 +176,7 @@ for i=1:Nrand
         num2str(i),runname);
     Write_ucd(meshStruct_def_quad,[FE_folder deformed_mesh_quad_filename],cell_type)
  
-    fprintf(in_runlist,[new_complete_path(4:end) '\n']);
+    fprintf(in_runlist,[new_complete_path(1:end) '\n']);
 end
 
 fclose(in_runlist);
