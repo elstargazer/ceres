@@ -1731,14 +1731,17 @@ template<int dim>
 void StokesProblem<dim>::write_vertices(unsigned char boundary_that_we_need) {
 	std::ostringstream vertices_output;
 	vertices_output << system_parameters::output_folder << "/time" <<
-		   Utilities::int_to_string(system_parameters::present_timestep, 2) << "_" <<
+		   Utilities::int_to_string(system_parameters::present_timestep, 3) << "_" <<
 		   Utilities::int_to_string(boundary_that_we_need, 2) <<
 		   "_surface.txt";
 	std::ofstream fout_final_vertices(vertices_output.str().c_str());
 	fout_final_vertices.close();
 
-	// Figure out if the vertex is on the boundary of the domain
 	std::vector<bool> vertex_touched(triangulation.n_vertices(), false);
+
+	if (boundary_that_we_need == 0)
+	{
+	// Figure out if the vertex is on the boundary of the domain
 	for (typename Triangulation<dim>::active_cell_iterator cell =
 			triangulation.begin_active(); cell != triangulation.end(); ++cell)
 		for (unsigned int f = 0; f < GeometryInfo<dim>::faces_per_cell; ++f)
@@ -1755,6 +1758,37 @@ void StokesProblem<dim>::write_vertices(unsigned char boundary_that_we_need) {
 							fout_final_vertices.close();
 						}
 				}
+		}
+	}
+	else
+	{		
+		// Figure out if the vertex is on an internal boundary
+		for (typename Triangulation<dim>::active_cell_iterator cell =
+				triangulation.begin_active(); cell != triangulation.end(); ++cell)
+			for (unsigned int f = 0; f < GeometryInfo<dim>::faces_per_cell; ++f)
+			{
+				if (cell->neighbor(f) != triangulation.end()) {
+					if (cell->material_id() != cell->neighbor(f)->material_id()) //finds face is at internal boundary
+							{
+						int high_mat_id = std::max(cell->material_id(),
+								cell->neighbor(f)->material_id());
+						if (high_mat_id == boundary_that_we_need) //finds faces at the correct internal boundary
+								{
+							for (unsigned int v = 0;
+									v < GeometryInfo<dim>::vertices_per_face;
+									++v)
+								if (vertex_touched[cell->face(f)->vertex_index(
+										v)] == false) {
+									vertex_touched[cell->face(f)->vertex_index(
+											v)] = true;
+									std::ofstream fout_final_vertices(vertices_output.str().c_str(), std::ios::app);
+									fout_final_vertices << cell->face(f)->vertex(v) << "\n";
+									fout_final_vertices.close();
+								}
+						}
+					}
+				}
+			}
 		}
 }
 
