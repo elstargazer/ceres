@@ -16,17 +16,37 @@
 #include <boost/math/special_functions/ellint_1.hpp>
 #include <boost/math/special_functions/ellint_2.hpp>
 
+#include "../support_code/local_math.h"
+
 using namespace std;
 using namespace dealii;
 
-double GetK(Point<3, double> pt, double a, double b, double c)
+template<int dim>
+double GetK(Point<dim, double> pt, vector<double> ell)
 // This function solves the equation:
 // x^2/(a^2+k) + y^2/(b^2+k) + z^2/(c^2+k) == 1
 {
-	double k;
-	double x = pt(0);
-	double y = pt(1);
-	double z = pt(2);
+	double x, y, z, a, b, c, k;
+	if (dim == 3)
+	{
+	    x = pt(0);
+	    y = pt(1);
+	    z = pt(2);
+
+	    a = ell[0];
+	    b = ell[1];
+	    c = ell[2];
+	}
+	else if (dim ==2)
+	{
+	    x = pt(0);
+	    y = 100.0;
+	    z = pt(1);
+
+	    a = ell[0];
+	    b = ell[0];
+	    c = ell[1];
+	}
 
 	double eps = 1e-12;
 	if ((x*x/(a*a)+y*y/(b*b)+z*z/(c*c)) > (1+eps))
@@ -52,15 +72,39 @@ double GetK(Point<3, double> pt, double a, double b, double c)
 	return k;
 }
 
-void GetDK(Point<3, double> pt, double a, double b, double c,
+template<int dim>
+void GetDK(Point<dim, double> pt, vector<double> ell,
 		double* DkDx, double* DkDy, double* DkDz)
 // This function find the derivatives of k w.r.t x, y and z,
 // where k is the solution of x^2/(a^2+k) + y^2/(b^2+k) + z^2/(c^2+k) == 1
 {
-	double k = GetK(pt,a,b,c);
-	double x = pt(0);
-	double y = pt(1);
-	double z = pt(2);
+	double x, y, z, a, b, c, k;
+//	template double GetK<int>(Point<dim, double> pt, vector<double> ell)); // explicit instantiation.
+
+	if (dim == 3)
+	{
+	    x = pt(0);
+	    y = pt(1);
+	    z = pt(2);
+
+	    a = ell[0];
+	    b = ell[1];
+	    c = ell[2];
+
+		k = GetK(pt,ell);
+	}
+	else if (dim == 2)
+	{
+	    x = pt(0);
+	    y = 100.0;
+	    z = pt(1);
+
+	    a = ell[0];
+	    b = ell[0];
+	    c = ell[1];
+
+		k = GetK(pt,ell);
+	}
 
 	double bot = pow(x/(a*a+k),2.0) +
 			     pow(y/(b*b+k),2.0) +
@@ -72,44 +116,70 @@ void GetDK(Point<3, double> pt, double a, double b, double c,
 }
 
 template <unsigned int dim>
-class AnalyticGravity
+class TEAnalyticGravity
 // Class for computing gravitational acceleration analytically for
 // a triaxial ellipsoid
 {
 public:
-	double a, b, c, rho;
 
-	void setup_vars(double a, double b, double c, double rho);
-	void get_gravity(const dealii::Point<dim> &p,  std::vector<double> &g);
+	std::vector<double> a_vec;
+	std::vector<double> b_vec;
+	std::vector<double> c_vec;
+	std::vector<double> rho_vec;
+
+	unsigned int nlayers;
+
+	void setup_vars(std::vector<double> a, std::vector<double> b, std::vector<double> c, std::vector<double> rho);
+	void get_gravity_layer(const dealii::Point<dim,double> &p,  std::vector<double> &g, unsigned int nl);
+	void get_gravity(const dealii::Point<dim,double> &p,  std::vector<double> &g);
 
 };
 
 template <unsigned int dim>
 // Setting dimensions and density of the triaxial ellipsoid
-void AnalyticGravity<dim>::setup_vars (double ai, double bi, double ci, double rhoi)
+void TEAnalyticGravity<dim>::setup_vars (std::vector<double> ai, std::vector<double> bi, std::vector<double> ci, std::vector<double> rhoi)
 {
-	a=ai;
-	b=bi;
-	c=ci;
-	rho=rhoi;
+	a_vec    = ai;
+	b_vec    = bi;
+	c_vec    = ci;
+	rho_vec = rhoi;
+
+	nlayers = a_vec.size();
 }
 
 template <unsigned int dim>
 // This function computes gravitational acceleration of the triaxial ellisoid
-void AnalyticGravity<dim>::get_gravity (const dealii::Point<dim> &p, std::vector<double> &g)
+void TEAnalyticGravity<dim>::get_gravity_layer(const dealii::Point<dim> &p, std::vector<double> &g, unsigned int nl)
 {
-	    Assert (dim == 3, ExcNotImplemented());
+	    double a = a_vec[nl];
+	    double b = b_vec[nl];
+	    double c = c_vec[nl];
+
+	    vector<double> ell;
+	    ell.push_back(a);
+	    ell.push_back(b);
+	    ell.push_back(c);
 
 	    // define constants
 		double G = 6.67e-11;
-		double pi = 2.0 * asin(1.0);
 
 		double ax, ay, az;
 		double x, y, z;
 
-		x = p(0);
-		y = p(1);
-		z = p(2);
+		if (dim == 3)
+		{
+		    x = p(0);
+		    y = p(1);
+		    z = p(2);
+		}
+		else if (dim == 2)
+		{
+		    x = p(0);
+		    y = 100.0;
+		    z = p(1);
+		}
+		std::cout << "ell axes = " << ell[0] << " " << ell[1] << " " << ell[2] << std::endl;
+		std::cout << "compute gravity at " << x << " " << y << " " << z << std::endl;
 
 		// check wheather or not point p is inside or outside of the ellipsoid
 		double w = x*x/a/a+y*y/b/b+z*z/c/c;
@@ -146,15 +216,25 @@ void AnalyticGravity<dim>::get_gravity (const dealii::Point<dim> &p, std::vector
 					2*abc/sqrt((a*a)*(b*b)*(c*c))*(-(b*b)*2*z/bmc2);
 
 			// assemble gravity vector
-			g.push_back(ax*pi*rho*G);
-			g.push_back(ay*pi*rho*G);
-			g.push_back(az*pi*rho*G);
+			g.clear();
+		    if (dim == 2)
+		    {
+			    g.push_back(ax*PI*G);
+			    g.push_back(az*PI*G);
+		    }
+		    else if (dim == 3)
+		    {
+			    g.push_back(ax*PI*G);
+				g.push_back(ay*PI*G);
+				g.push_back(az*PI*G);
+		    }
 		}
 		else
 		// if w > 1, the point p is outside of the ellipsoid
 		{
 			// compute k
-			double k=GetK(p,a,b,c);
+//			template double GetK<dim>(Point<dim, double> pt, vector<double> ell);
+			double k=GetK(p,ell);
 
 			double a2pk = a*a+k;
 			double b2pk = b*b+k;
@@ -167,7 +247,8 @@ void AnalyticGravity<dim>::get_gravity (const dealii::Point<dim> &p, std::vector
 			double DkDz;
 
 			// compute k derivatives kx, ky, kz
-			GetDK(p,a,b,c,&DkDx,&DkDy,&DkDz);
+//			template void GetDK<dim>(Point<dim, double> pt, vector<double> ell, double*, double*, double*);
+			GetDK(p,ell,&DkDx,&DkDy,&DkDz);
 
 			// compute elliptic integrals of the first and second kind
 			double F =  boost::math::ellint_1(sqrt(eratio),psi);
@@ -178,6 +259,8 @@ void AnalyticGravity<dim>::get_gravity (const dealii::Point<dim> &p, std::vector
 			double A = (2*abc)/sqrt(amc2)*(1-x*x/amb2+y*y/amb2);
 
 			double tempA = 4*abc/(amb2*sqrt(amc2));
+
+			std::cout << "vars1 = " << abc << " " << amc2 << " " << amb2 << " " << tempA << std::endl;
 
 			double DADx = -tempA*x;
 			double DADy =  tempA*y;
@@ -229,62 +312,40 @@ void AnalyticGravity<dim>::get_gravity (const dealii::Point<dim> &p, std::vector
 			double ay= DADy * F + DFDy * A + DBDy * E + B * DEDy + DCDy * D + C * DDDytot;
 		    double az= 0        + DFDz * A + DBDz * E + B * DEDz + DCDz * D + C * DDDztot;
 
+			std::cout << "vars = "<< DADx << " " << F << " " << DFDx << " " << A << " " << DBDx << std::endl;
+
 		    // assemble gravitational acceleration vector
-			g.push_back(ax*pi*rho*G);
-			g.push_back(ay*pi*rho*G);
-			g.push_back(az*pi*rho*G);
+		    g.clear();
+
+		    if (dim == 2)
+		    {
+			    g.push_back(ax*PI*G);
+			    g.push_back(az*PI*G);
+		    }
+		    else if (dim == 3)
+		    {
+			    g.push_back(ax*PI*G);
+				g.push_back(ay*PI*G);
+				g.push_back(az*PI*G);
+		    }
 		}
 }
 
-int main()
+template<unsigned int dim>
+void TEAnalyticGravity<dim>::get_gravity(const dealii::Point<dim> &p, std::vector<double> &g)
 {
-    time_t time_start = time (NULL);
-    time_t time_finish;
-
-	double a, b, c;
-	double x, y, z;
-	double rho;
-
-	a = 3.0;
-	b = 2.0;
-	c = 1.0;
-
-	int npts = 40.0;
-	double fac = 444.;
-
-	for(int i=1;i<npts;i++)
+	std::vector<double> g_temp(0);
+	for(unsigned int i=0; i<nlayers; i++)
 	{
-		for(int j=1;j<npts;j++)
-		{
-			for(int k=1;k<npts;k++)
-			{
-				x = i/npts*fac;
-				y = j/npts*fac;
-				z = k/npts*fac;
-
-				rho = 1000.0;
-
-				Point<3,double> p = Point<3,double>(x,y,z);
-				std::vector<double> g;
-
-				AnalyticGravity<3> * aGrav = new AnalyticGravity<3>;  //sets up pointer to gravity object
-				aGrav->setup_vars(a,b,c,rho);
-				aGrav->get_gravity(p,g);
-
-//				printf("ax = %23.16E\n", g[0]);
-//				printf("ay = %23.16E\n", g[1]);
-//				printf("az = %23.16E\n", g[2]);
-			}
-		}
+		get_gravity_layer(p, g_temp, i);
+		if (i==0)
+			for(unsigned int j=0; j<dim; j++)
+			    g[j] += g_temp[j] * rho_vec[i];
+		else
+			for(unsigned int j=0; j<dim; j++)
+		        g[j] += g_temp[j] * (rho_vec[i] - rho_vec[i-1]);
 	}
-
-//	printf("ax = %23.16E\n", g[0]);
-//	printf("ay = %23.16E\n", g[1]);
-//	printf("az = %23.16E\n", g[2]);
-	time_finish = time (NULL);
-	printf("Time elapsed = %ld [sec]\n",time_finish-time_start);
-
-	return 0;
 }
+
 
 

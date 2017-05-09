@@ -9,33 +9,6 @@
 #include <deal.II/base/point.h>
 #include <fstream>
 #include <iostream>
-#include <deal.II/grid/tria.h>
-#include <deal.II/dofs/dof_handler.h>
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/tria_boundary_lib.h>
-#include <deal.II/grid/tria_accessor.h>
-#include <deal.II/grid/tria_iterator.h>
-#include <deal.II/dofs/dof_accessor.h>
-#include <deal.II/fe/fe_q.h>
-#include <deal.II/dofs/dof_tools.h>
-#include <deal.II/fe/fe_values.h>
-#include <deal.II/base/quadrature_lib.h>
-#include <deal.II/base/function.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/matrix_tools.h>
-#include <deal.II/lac/vector.h>
-#include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/block_vector.h>
-#include <deal.II/lac/sparse_matrix.h>
-#include <deal.II/lac/compressed_sparsity_pattern.h>
-#include <deal.II/dofs/dof_renumbering.h>
-#include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/precondition.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/fe_field_function.h>
-#include <deal.II/numerics/derivative_approximation.h>
-#include <deal.II/base/logstream.h>
 
 namespace A_Grav_namespace
 {
@@ -50,9 +23,6 @@ namespace A_Grav_namespace
 		double r_core_polar;
 	}
 	
-
-
-
 template <int dim>
 class AnalyticGravity 
 {
@@ -60,7 +30,6 @@ class AnalyticGravity
     void setup_vars (std::vector<double> v);
 	void get_gravity (const dealii::Point<dim> &p, std::vector<double> &g);
 
-    
   private:	
 	double ecc;
 	double eV;

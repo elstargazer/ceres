@@ -1,24 +1,67 @@
-function GeneratePowerLawMesh2(Files,cfg, Nrand)
-
+function GeneratePowerLawMesh2(Files,cfg, Nrand, runname)
 
 matlab_config_filename = Files.matlab_config_filename;
 config_template_filename = Files.config_template_filename;
 config_list_filename = Files.config_list_filename;
 
+%% Read matlab configuration
+
+in = fopen(matlab_config_filename);
+
+str = fscanf(in,'FE_folder = %s\n',1);
+FE_folder = str(2:end-2);
+
+str = fscanf(in,'output_folder = %s\n',1);
+output_folder = str(2:end-2);
+
+str = fscanf(in,'meshes_folder = %s\n',1);
+meshes_folder = str(2:end-2);
+
+str = fscanf(in,'config_folder = %s\n',1);
+config_folder = str(2:end-2);
+
+str = fscanf(in,'figure_folder = %s\n',1);
+figure_folder = str(2:end-2);
+
+folder_cfg.FE_folder = FE_folder;
+folder_cfg.output_folder = output_folder;
+folder_cfg.meshes_folder = meshes_folder;
+folder_cfg.config_folder = config_folder;
+folder_cfg.figure_folder = figure_folder;
+
+fclose(in);
+
 %% Input paramters
 
+n_only = 4;
+
 r_mean    = cfg.r_mean;
-beta      = cfg.beta;
-intercept = cfg.intercept;
-layer_mat = cfg.mat_id;
+r2        = r_mean - cfg.depths_rho;
 
-L = 50;
+if isfield(cfg,'spectrum_filename')
+    spectrum_filename = cfg.spectrum_filename
+    spectrum_filename = [FE_folder spectrum_filename];
+    spectrum_given = true;
+    
+else
+    beta      = cfg.beta;
+    intercept = cfg.intercept;  
+     spectrum_given = false;
+end
 
-% core axes
-h = 200000;
+layer_mat = cfg.mat_id;   
 
-nsq = 12;
-nl  = [20 5];
+cell_h1 = cfg.cell_height(1); % layer height in m
+cell_h2 = cfg.cell_height(2); 
+
+L = 100; % spherical harmonic degree
+nsq = 20; % number of point on the side of the cube
+
+cube_size = r2/2; % cube side in m 
+cube_rad  = sqrt(2)*cube_size; % circumscribed radius of a cube
+layer_h = r2 - cube_rad; % height of layer above the cube
+
+nl  = [fix(layer_h/cell_h2) fix((r_mean-r2)/cell_h1)];
 
 %% plume
 
@@ -29,22 +72,8 @@ nl  = [20 5];
 % plume_cell_mat = [2];
 % [xp,~,zp] = sph2cart(0,plume_lat/180*pi,plume_r);
 
-%% Read configuration file
-
-in = fopen(matlab_config_filename);
-
-str = fscanf(in,'spherical_mesh_filename = %s\n',1);
-init_mesh_filename=str(2:end-2);
-str = fscanf(in,'shape_folder = %s\n',1);
-shape_folder = str(2:end-2);
-str = fscanf(in,'shape_filename = %s\n',1);
-shape_filename = str(2:end-2);
-str = fscanf(in,'figure_folder = %s\n',1);
-figure_folder = str(2:end-2);
-str = fscanf(in,'figure_spetrum_filename = %s',1);
-figure_spetrum_filename = str(2:end-2);
-
-fclose(in);
+%% Run list file
+in_runlist = fopen(['../' runname '_runlist'],'w');
 
 %% plotting settings
 FigureSettings
@@ -52,27 +81,87 @@ FigureSettings
 %% Initial parameters
 
 cell_type = 'quad';
-[path,name,ext] = fileparts(init_mesh_filename);
+meshes_path = ['meshes'];
+name = 'mesh_sph';
+ext = '.inp';
 
 %% Generate random power law spectrum
 
-% layer_mat(0) -> core
-% layer_mat(1) -> outer shell
+% layer_mat(1) -> core
+% layer_mat(0) -> outer shell
+
+
+%% Compute hydrostatic shape
+
+[fh,fval]=HydrostaticStateExact2l(...
+    cfg.r_mean,...
+    cfg.r_mean-cfg.depths_rho,...
+    cfg.T,...
+    cfg.rho(1),...
+    cfg.rho(2),0.1, 0.1);
+
+% outer shape
+[a1,~,c1] = fr2abc(cfg.r_mean,fh(1),0);
+% core
+[a2,~,c2] = fr2abc(r_mean-cfg.depths_rho,fh(2),0);
+
+fi = (-90:1:90);
+lambda = (-180:1:180);
+[fii,lambdai] = meshgrid(fi,lambda);
+
+r1_ell = TriEllRadVec(fii/180*pi,lambdai/180*pi,a1,a1,c1,'rad');
+r2_ell = TriEllRadVec(fii/180*pi,lambdai/180*pi,a2,a2,c2,'rad');
+
+lmcosi_hydrostatic1 = xyz2plm(r1_ell',6);
+lmcosi_hydrostatic2 = xyz2plm(r2_ell',6);
+
+C20_1 = lmcosi_hydrostatic1(4,3);
+C40_1 = lmcosi_hydrostatic1(11,3);
+C60_1 = lmcosi_hydrostatic1(22,3);
+
+C20_2 = lmcosi_hydrostatic2(4,3);
+C40_2 = lmcosi_hydrostatic2(11,3);
+C60_2 = lmcosi_hydrostatic2(22,3);
+
+
+%% beta and intercept for the core
+beta2 = -99;
+intercept2 = -99;
+
+mkdir([FE_folder meshes_path '/' runname '/']);
 
 for i=1:Nrand
     
-    lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L);   
-    lmcosi_cmb = PowerLawSH(r_mean-cfg.depths_rho,beta-1,intercept,L);
-  
-    % make shape it always oblate
-    lmcosi_shape(4,3) = -abs(lmcosi_shape(4,3));
+    deformed_mesh_quad_filename = [meshes_path '/' runname '/' name '_def_quad_' num2str(i) ext];
+    deformed_mesh_info_filename = [meshes_path '/' runname '/' name '_def_quad_' num2str(i) '.inf'];
+   
+    % non hydrostatic part
+    if spectrum_given
+        lmcosi_shape = PowerLawSH(r_mean,spectrum_filename,L,deformed_mesh_info_filename);
+    else    
+        lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L,deformed_mesh_info_filename);
+    end
     
+    % single degree spectrum
+%     lmcosi_shape = SingleDegreePSD(r_mean,beta,intercept,L,n_only);
+    lmcosi_cmb   = PowerLawSH(r_mean-cfg.depths_rho,beta2,intercept2,L,deformed_mesh_info_filename);
+    
+    % add hydrostatic part
+    lmcosi_shape(4,3) = lmcosi_shape(4,3) + C20_1;
+    lmcosi_shape(11,3) = lmcosi_shape(11,3) + C40_1;
+    lmcosi_shape(22,3) = lmcosi_shape(22,3) + C60_1;
+    
+    lmcosi_cmb(4,3) = lmcosi_cmb(4,3) + C20_2;
+    lmcosi_cmb(11,3) = lmcosi_cmb(11,3) + C40_2;
+    lmcosi_cmb(22,3) = lmcosi_cmb(22,3) + C60_2;
+             
     meshStruct_def_quad = GenerateQuadLayerMesh(...
-        lmcosi_cmb,lmcosi_shape,layer_mat,nsq,nl);
+        lmcosi_cmb,lmcosi_shape,layer_mat,nsq,nl,cube_size);
+    
     figure; hold on;
     plot(meshStruct_def_quad.V(:,1),meshStruct_def_quad.V(:,2),'.');
     
-    
+
 %     for k=1:numel(plume_cell_mat)
 %         % put a plume
 %         plum_distance = sqrt( (meshStruct_def_quad.V(:,1)-xp(k)).^2 + ...
@@ -88,11 +177,11 @@ for i=1:Nrand
 %         
 %     end
     
-    deformed_mesh_quad_filename = [path '/' name '_def_quad_' num2str(i) ext];
-    
-    FillConfigTemplate(config_template_filename,deformed_mesh_quad_filename,num2str(i))
-    Write_ucd(meshStruct_def_quad,deformed_mesh_quad_filename,cell_type)
-    
+    new_complete_path = FillConfigTemplate(config_template_filename,deformed_mesh_quad_filename,...
+        num2str(i),runname);
+    Write_ucd(meshStruct_def_quad,[FE_folder deformed_mesh_quad_filename],cell_type)
+ 
+    fprintf(in_runlist,[new_complete_path(1:end) '\n']);
 end
 
-
+fclose(in_runlist);

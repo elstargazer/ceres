@@ -23,6 +23,7 @@ namespace system_parameters {
 // Mesh file name
 string mesh_filename;
 string output_folder;
+string spectrum_filename;
 
 // Body parameters
 double r_mean;
@@ -41,6 +42,8 @@ vector<double> G;
 
 double eta_ceiling;
 double eta_floor;
+double eta_Ea;
+bool lat_dependence;
 
 unsigned int sizeof_depths_eta;
 unsigned int sizeof_depths_rho;
@@ -51,12 +54,12 @@ unsigned int sizeof_G;
 
 double pressure_scale;
 double q;
-double ice_k;
 bool cylindrical;
 bool continue_plastic_iterations;
 
 // plasticity variables
 bool plasticity_on;
+unsigned int failure_criterion;
 unsigned int max_plastic_iterations;
 double smoothing_radius;
 
@@ -72,6 +75,7 @@ double current_time_interval;
 unsigned int global_refinement;
 unsigned int small_r_refinement;
 unsigned int crustal_refinement;
+double crust_refine_region;
 unsigned int surface_refinement;
 
 //solver variables
@@ -114,6 +118,7 @@ void config_in::write_config()
     fout_config << "omegasquared = " << system_parameters::omegasquared << endl;
     fout_config << "beta = " << system_parameters::beta << endl;
     fout_config << "intercept = " << system_parameters::intercept << endl;
+    fout_config << "spectrum_filename = " << system_parameters::spectrum_filename << endl;
 
     // rheology parameters
 
@@ -137,14 +142,16 @@ void config_in::write_config()
 
     fout_config << "eta_ceiling = " << system_parameters::eta_ceiling << endl;
     fout_config << "eta_floor = " << system_parameters::eta_floor << endl;
+    fout_config << "eta_Ea = " << system_parameters::eta_Ea << endl;
+    fout_config << "lat_dependence = " << system_parameters::lat_dependence << endl;
     fout_config << "pressure_scale = " << system_parameters::pressure_scale << endl;
     fout_config << "q = " << system_parameters::q << endl;
-	fout_config << "ice_k = " << system_parameters::ice_k << endl;
     fout_config << "cylindrical = " << system_parameters::cylindrical << endl;
     fout_config << "continue_plastic_iterations = " << system_parameters::continue_plastic_iterations << endl;
 
     // Plasticity parameters
     fout_config << "plasticity_on = " << system_parameters::plasticity_on << endl;
+    fout_config << "failure_criterion = " << system_parameters::failure_criterion << endl;
     fout_config << "max_plastic_iterations = " << system_parameters::max_plastic_iterations << endl;
     fout_config << "smoothing_radius = " << system_parameters::smoothing_radius << endl;
 
@@ -160,6 +167,7 @@ void config_in::write_config()
     fout_config << "global_refinement = " << system_parameters::global_refinement << endl;
     fout_config << "small_r_refinement = " << system_parameters::small_r_refinement << endl;
     fout_config << "crustal_refinement = " << system_parameters::crustal_refinement << endl;
+    fout_config << "crust_refine_region = " << system_parameters::crust_refine_region << endl;
     fout_config << "surface_refinement = " << system_parameters::surface_refinement << endl;
 
     // Solver parameters
@@ -189,7 +197,7 @@ config_in::config_in(char* filename)
 	  }
 	  catch(const FileIOException &fioex)
 	  {
-	    std::cerr << "I/O error while reading file." << std::endl;
+	    std::cerr << "I/O error while reading file:" << filename << std::endl;
 	  }
 	  catch(const ParseException &pex)
 	  {
@@ -201,18 +209,25 @@ config_in::config_in(char* filename)
 	  try
 	  {
         string msh = cfg.lookup("mesh_filename");
-        string out = cfg.lookup("output_folder");
-
-        system_parameters::output_folder = out;
 	    system_parameters::mesh_filename = msh;
-
-        string output = cfg.lookup("output_folder");
-	    system_parameters::output_folder = output;
-
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
-	    cerr << "No 'mesh_filename' or 'output_folder' setting in configuration file." << endl;
+	    cerr << "No 'mesh_filename' setting in configuration file." << endl;
+	  }
+
+	  // get output folder
+
+	  try
+	  {
+        string output = cfg.lookup("output_folder");
+	    system_parameters::output_folder = output;
+
+	    std::cout << "Writing to folder: " << output << endl;
+	  }
+	  catch(const SettingNotFoundException &nfex)
+	  {
+	    cerr << "No 'output_folder' setting in configuration file." << endl;
 	  }
 
 	  // get radii
@@ -228,8 +243,17 @@ config_in::config_in(char* filename)
 	    body_parameters.lookupValue("period", system_parameters::period);
 	    system_parameters::omegasquared = pow(TWOPI / 3600.0 / system_parameters::period, 2.0);
 	    body_parameters.lookupValue("r_mean", system_parameters::r_mean);
-	    body_parameters.lookupValue("beta", system_parameters::beta);
-	    body_parameters.lookupValue("intercept", system_parameters::intercept);
+
+	    string spc_filename;
+	    bool spectrum_given = body_parameters.lookupValue("spectrum_filename",spc_filename);
+
+	    if (spectrum_given)
+	        system_parameters::spectrum_filename = spc_filename;
+	    else
+	    { 
+	    	body_parameters.lookupValue("beta", system_parameters::beta);
+	        body_parameters.lookupValue("intercept", system_parameters::intercept);
+        }
 	  }
 	  catch(const SettingNotFoundException &nfex)
 	  {
@@ -326,9 +350,10 @@ config_in::config_in(char* filename)
 	    const Setting& rheology_parameters = root["rheology_parameters"];
 	    rheology_parameters.lookupValue("eta_ceiling", system_parameters::eta_ceiling);
 	    rheology_parameters.lookupValue("eta_floor", system_parameters::eta_floor);
+	    rheology_parameters.lookupValue("eta_Ea", system_parameters::eta_Ea);
+	    rheology_parameters.lookupValue("lat_dependence", system_parameters::lat_dependence);
 	    rheology_parameters.lookupValue("pressure_scale", system_parameters::pressure_scale);
 	    rheology_parameters.lookupValue("q", system_parameters::q);
-		rheology_parameters.lookupValue("ice_k", system_parameters::ice_k);
 	    rheology_parameters.lookupValue("cylindrical", system_parameters::cylindrical);
 	    rheology_parameters.lookupValue("continue_plastic_iterations", system_parameters::continue_plastic_iterations);
 	  }
@@ -343,6 +368,7 @@ config_in::config_in(char* filename)
 
 	    const Setting& plasticity_parameters = root["plasticity_parameters"];
 	    plasticity_parameters.lookupValue("plasticity_on", system_parameters::plasticity_on);
+	    plasticity_parameters.lookupValue("failure_criterion", system_parameters::failure_criterion);
 	    plasticity_parameters.lookupValue("max_plastic_iterations", system_parameters::max_plastic_iterations);
 	    plasticity_parameters.lookupValue("smoothing_radius", system_parameters::smoothing_radius);
 	  }
@@ -379,6 +405,7 @@ config_in::config_in(char* filename)
 	    mesh_refinement_parameters.lookupValue("global_refinement", system_parameters::global_refinement);
 	    mesh_refinement_parameters.lookupValue("small_r_refinement", system_parameters::small_r_refinement);
 	    mesh_refinement_parameters.lookupValue("crustal_refinement", system_parameters::crustal_refinement);
+	    mesh_refinement_parameters.lookupValue("crust_refine_region", system_parameters::crust_refine_region);
 	    mesh_refinement_parameters.lookupValue("surface_refinement", system_parameters::surface_refinement);
 	  }
 	  catch(const SettingNotFoundException &nfex)
