@@ -2,6 +2,7 @@ function lmcosi_shape = PowerLawSH(varargin)
 
 if (nargin==5)
     
+    %% if power law parameters are given
     r_mean = varargin{1};
     beta = varargin{2};
     intercept = varargin{3};
@@ -40,6 +41,8 @@ if (nargin==5)
     
     
 elseif (nargin==4)
+    
+    %% if spherctrum itself is given
     
     r_mean = varargin{1};
     spectrum_filename = varargin{2};
