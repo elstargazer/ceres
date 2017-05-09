@@ -33,6 +33,8 @@ fclose(in);
 
 %% Input paramters
 
+n_only = 4;
+
 r_mean    = cfg.r_mean;
 r2        = r_mean - cfg.depths_rho;
 
@@ -53,7 +55,7 @@ cell_h1 = cfg.cell_height(1); % layer height in m
 cell_h2 = cfg.cell_height(2); 
 
 L = 100; % spherical harmonic degree
-nsq = 50; % number of point on the side of the cube
+nsq = 20; % number of point on the side of the cube
 
 cube_size = r2/2; % cube side in m 
 cube_rad  = sqrt(2)*cube_size; % circumscribed radius of a cube
@@ -139,6 +141,9 @@ for i=1:Nrand
     else    
         lmcosi_shape = PowerLawSH(r_mean,beta,intercept,L,deformed_mesh_info_filename);
     end
+    
+    % single degree spectrum
+%     lmcosi_shape = SingleDegreePSD(r_mean,beta,intercept,L,n_only);
     lmcosi_cmb   = PowerLawSH(r_mean-cfg.depths_rho,beta2,intercept2,L,deformed_mesh_info_filename);
     
     % add hydrostatic part
