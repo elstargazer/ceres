@@ -1,9 +1,9 @@
 ccc
 
-matlab_config_filename   = '../config/ConfigurationMatlab.cfg';
-config_template_filename = '../config/Vary_core_g10_55km.cfg';
-config_list_filename     = '../Vary_core_g10_55km_runlist';
-runname                  = 'Vary_core_g10_55km';
+matlab_config_filename   = '/Users/ermakov/Dawn/FE/config/ConfigurationMatlab.cfg';
+config_template_filename = '/Users/ermakov/Dawn/FE/config/May5_g10_softint.cfg';
+config_list_filename     = '/Users/ermakov/Dawn/FE/May5_g10_softint_runlist';
+runname                  = 'May5_g10_softint';
 
 Files.matlab_config_filename   = matlab_config_filename;
 Files.config_template_filename = config_template_filename;
