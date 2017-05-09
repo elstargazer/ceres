@@ -6,14 +6,15 @@ G  = 6.67e-11;
 Rref = 470000;
 M = GM/G;
 
-runname = 'benchmark_g30'; %mod this line to reflect the set of runs being computed
-runs_root_folder = '/Users/rogerfu/Dropbox/ceres_dropbox/ceres_public/';
+runname = 'deg8_48km'; %mod this line to reflect the set of runs being computed
+runs_root_folder = '/Users/rogerfu/Desktop/ceres/ceres_code/';
 %runlist_filename file must be in the runs_root_folder
-runlist_filename = [runs_root_folder 'RunList_benchmark_g30.txt']; %mod this line for the runlist .txt file
+runlist_filename = [runs_root_folder 'deg8_48km_runlist']; %mod this line for the runlist .txt file
 in_runlist = fopen(runlist_filename,'r');
-output_general_folder = [runs_root_folder 'surface_outputs/'];
+output_general_folder = [runs_root_folder 'output/'];
 
-L = 100;
+boundary_ID = 1;
+L = 20;
  
 config_filename = fgetl(in_runlist);
 
@@ -115,7 +116,8 @@ while (config_filename ~= -1)
     mkdir(spectra_folder);
     disp(['Writing to folder ' spectra_folder]);
     
-    filename_surf = getAllFiles([output_general_folder runname '/output_' num2string(output_number,'%iu') '/'],'00_surface');
+    filename_surf = getAllFiles([output_general_folder runname '/output_' num2string(output_number,'%iu') '/'],strcat(num2str(boundary_ID,'%02u')...
+        ,'_surface'));
     
 %     figure; hold on;
 %     set(gca,'XScale','log');
@@ -130,7 +132,7 @@ while (config_filename ~= -1)
             [path,name,ext] = fileparts(filename_surf{i});
             
             output_spectrum_filename = [output_general_folder runname '/output_' num2string(output_number,'%iu') '/' strrep(name,...
-                '00_surface', 'spectrum.txt')];
+                strcat(num2str(boundary_ID,'%02u'),'_surface'), strcat(num2str(boundary_ID,'%02u'),'_spectrum.txt'))];
             
             % get outer boundary spherical harmonic expansion
             lmcosi_limb = quad2plm(filename_surf{i},L);

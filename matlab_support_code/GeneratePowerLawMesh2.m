@@ -39,7 +39,7 @@ r_mean    = cfg.r_mean;
 r2        = r_mean - cfg.depths_rho;
 
 if isfield(cfg,'spectrum_filename')
-    spectrum_filename = cfg.spectrum_filename;
+    spectrum_filename = cfg.spectrum_filename
     spectrum_filename = [FE_folder spectrum_filename];
     spectrum_given = true;
     
