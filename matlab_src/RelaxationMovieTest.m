@@ -20,9 +20,9 @@ Rref = 470000;
 
 %% Files
 matlab_config_filename   = '~/Dawn/FE/config/ConfigurationMatlab.cfg';
-config_template_filename = '~/Dawn/FE/config/deg4_37km/degN_37km_1.cfg';
-runname                  = 'deg4_37km';
-filename_real_spc        = '~/Dawn/FORTRAN/PSD_SPG_HAMO_20160107.txt';
+config_template_filename = '~/Dawn/FE/config/May5_g10_softint/May5_g10_softint_1.cfg';
+runname                  = 'May5_g10_softint';
+filename_real_spc        = '~/Dawn/FE/spectrum/PSD_SPG_HAMO_NH.txt';
 n_only = 4;
 
 %% Read configuration
@@ -192,7 +192,7 @@ plot_limb = plot(kf(1:2:end),sdl_limb(1:2:end)/1e6,...
 plot_moho = plot(kf(1:2:end),sdl_moho(1:2:end)/1e6,...
     '--*','MarkerSize',4,'Color','k','LineWidth',1);
 
-legend([h_real_spec h_fit_spec plot_limb],{'Observed','Power law fit','FE result'},'FontSize',fntsize);
+legend([h_real_spec h_fit_spec plot_limb plot_moho],{'Observed','Power law fit','FE topo','FE moho'},'FontSize',fntsize);
 
 % plot shape
 subplot(pl_shape)
@@ -262,8 +262,6 @@ open(v);
 frame = getframe(gcf);
 writeVideo(v,frame);
 
-
-
 % draw and record all other frames
 for i=2:1:numel(filename_mesh)-1
     
@@ -271,20 +269,20 @@ for i=2:1:numel(filename_mesh)-1
     V = meshStruct.V/1000;
     E = meshStruct.E;
     
-%     subplot(pl_shape);
-%     title(['t = ' num2str(t(i),'%6.2e') ' [y]'],'FontSize',fntsize,'interpreter','latex');
-%     
-%     for j=1:size(E,1)
-%         set(l(j),'XData',[V(E(j,1),1) V(E(j,2),1) V(E(j,3),1) V(E(j,4),1) V(E(j,1),1)]);
-%         set(l(j),'YData',[V(E(j,1),2) V(E(j,2),2) V(E(j,3),2) V(E(j,4),2) V(E(j,1),2)]);
-%         set(p(j),'XData',[V(E(j,1),1) V(E(j,2),1) V(E(j,3),1) V(E(j,4),1) V(E(j,1),1)]);
-%         set(p(j),'YData',[V(E(j,1),2) V(E(j,2),2) V(E(j,3),2) V(E(j,4),2) V(E(j,1),2)]);
-%     end
-%     
-%     try
-%         fl = load(filename_pl{i});
-%         set(failure_plot,'XData',fl(:,1)/1000,'YData',fl(:,2)/1000);
-%     end
+    subplot(pl_shape);
+    title(['t = ' num2str(t(i),'%6.2e') ' [y]'],'FontSize',fntsize,'interpreter','latex');
+    
+    for j=1:size(E,1)
+        set(l(j),'XData',[V(E(j,1),1) V(E(j,2),1) V(E(j,3),1) V(E(j,4),1) V(E(j,1),1)]);
+        set(l(j),'YData',[V(E(j,1),2) V(E(j,2),2) V(E(j,3),2) V(E(j,4),2) V(E(j,1),2)]);
+        set(p(j),'XData',[V(E(j,1),1) V(E(j,2),1) V(E(j,3),1) V(E(j,4),1) V(E(j,1),1)]);
+        set(p(j),'YData',[V(E(j,1),2) V(E(j,2),2) V(E(j,3),2) V(E(j,4),2) V(E(j,1),2)]);
+    end
+    
+    try
+        fl = load(filename_pl{i});
+        set(failure_plot,'XData',fl(:,1)/1000,'YData',fl(:,2)/1000);
+    end
     
     lmcosi_limb = quad2plm(filename_surf{i},L);
     lmcosi_moho = quad2plm(filename_moho{i},L);
@@ -304,11 +302,11 @@ for i=2:1:numel(filename_mesh)-1
                   lmcosi_limb((n_only+1)*n_only/2+1,3);
                   
 
-%     set(plot_limb,'YData',sdl_limb(1:2:end)/1e6);
-%     set(plot_moho,'YData',sdl_moho(1:2:end)/1e6);
+    set(plot_limb,'YData',sdl_limb(1:2:end)/1e6);
+    set(plot_moho,'YData',sdl_moho(1:2:end)/1e6);
      
-%     frame = getframe(gcf);
-%     writeVideo(v,frame);
+    frame = getframe(gcf);
+    writeVideo(v,frame);
     i/numel(filename_surf)
     
 end
@@ -316,16 +314,13 @@ end
 close all
 close(v)
 
+%% Plot evolution of moho and topo
+
 figure; hold on;
 plot(t(2:end),1./abs(tm_ratio(2:end)),'-ok');
-
-
 plot(t(2:end),15*exp(-t(2:end)/0.1e12)+0.8,'-r');
 
 ylim([0 5]);
-
-
-
 
 s = fitoptions('Method','NonlinearLeastSquares',...
                'Lower',[0,0],...
@@ -335,6 +330,8 @@ s = fitoptions('Method','NonlinearLeastSquares',...
 f = fittype('c+a*ext(-b/x','problem','n','options',s);
 
 [c2,gof2] = fit(cdate,pop,f,'problem',2);
+
+%% Fit evolution of moho and topo
 
 % y_signal = abs(1./tm_ratio(2:end));
 % x_time = t(2:end);
